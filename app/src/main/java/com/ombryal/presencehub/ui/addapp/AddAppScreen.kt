@@ -14,9 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.ombryal.presencehub.plugins.PluginRegistryEntry
 
 @Composable
-fun AddAppScreen(
-    availablePlugins: List<PluginRegistryEntry>,
-    onRefresh: () -> Unit,
+fun PluginDetailsScreen(
+    plugin: PluginRegistryEntry,
     onInstall: (PluginRegistryEntry) -> Unit,
     onBack: () -> Unit
 ) {
@@ -26,29 +25,21 @@ fun AddAppScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = "Plugin Store", style = MaterialTheme.typography.headlineLarge)
+        Text(text = plugin.name, style = MaterialTheme.typography.headlineLarge)
 
-        Button(onClick = onRefresh) {
-            Text("Refresh Store")
-        }
-
-        availablePlugins.forEach { plugin ->
-            Card {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = plugin.name, style = MaterialTheme.typography.titleMedium)
-                    Text(text = "Version: ${plugin.version}")
-                    Text(text = if (plugin.verified) "Verified" else "Unverified")
-                    plugin.description?.let { Text(text = it) }
-
-                    Button(onClick = { onInstall(plugin) }) {
-                        Text("Install")
-                    }
-                }
+        Card {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(text = "Plugin ID: ${plugin.pluginId}")
+                Text(text = "Version: ${plugin.version}")
+                Text(text = "API Version: ${plugin.apiVersion}")
+                Text(text = if (plugin.verified) "Verified" else "Unverified")
+                plugin.description?.let { Text(text = it) }
+                Text(text = "Download URL: ${plugin.downloadUrl}")
             }
         }
 
-        if (availablePlugins.isEmpty()) {
-            Text(text = "No plugins loaded yet.")
+        Button(onClick = { onInstall(plugin) }) {
+            Text("Install")
         }
 
         Button(onClick = onBack) {
