@@ -11,7 +11,6 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.ombryal.presencehub.DiscordRPCHubApp
-import com.ombryal.presencehub.R
 import com.ombryal.presencehub.utils.Constants
 import com.ombryal.presencehub.utils.Logger
 
@@ -22,7 +21,11 @@ class RPCCoreService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
         startForeground(1001, buildNotification())
+
+        val app = application as DiscordRPCHubApp
+        app.rpcManager.connect()
         startPolling()
     }
 
@@ -34,6 +37,10 @@ class RPCCoreService : Service() {
 
     override fun onDestroy() {
         stopPolling()
+
+        val app = application as DiscordRPCHubApp
+        app.rpcManager.disconnect()
+
         super.onDestroy()
     }
 
@@ -43,8 +50,7 @@ class RPCCoreService : Service() {
         pollingRunnable = object : Runnable {
             override fun run() {
                 try {
-                    val plugin = app.pluginManager.getActivePlugin()
-                    plugin?.onPoll()
+                    app.pluginManager.getActivePlugin()?.onPoll()
                     app.rpcManager.refreshPresence()
                 } catch (t: Throwable) {
                     Logger.e("Polling error", t)
