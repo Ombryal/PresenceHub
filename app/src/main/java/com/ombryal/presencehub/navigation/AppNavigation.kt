@@ -19,7 +19,10 @@ object Routes {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    onStartRpc: () -> Unit,
+    onStopRpc: () -> Unit
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -37,7 +40,9 @@ fun AppNavigation() {
 
         composable(Routes.ACCOUNT) {
             AccountScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onStartRpc = onStartRpc,
+                onStopRpc = onStopRpc
             )
         }
 
