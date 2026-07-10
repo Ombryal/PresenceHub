@@ -20,7 +20,7 @@ class PluginInstallManager(
         )
 
         if (verified) {
-            installedPluginRegistry?.markInstalled(entry.pluginId)
+            installedPluginRegistry?.markInstalled(entry.pluginId, entry.version)
         }
 
         return verified
