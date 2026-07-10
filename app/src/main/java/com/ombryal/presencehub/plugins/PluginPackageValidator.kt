@@ -7,6 +7,7 @@ object PluginPackageValidator {
                 manifest.name.isNotBlank() &&
                 manifest.version.isNotBlank() &&
                 manifest.apiVersion > 0 &&
+                manifest.author.isNotBlank() &&
                 manifest.packageUrl.isNotBlank()
     }
 }
