@@ -1,9 +1,9 @@
 package com.ombryal.presencehub.providers.youtube
 
+import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import android.app.Notification
-import com.ombryal.prestencehub.utils.Logger
+import com.ombryal.presencehub.utils.Logger
 
 class YouTubeNotificationListenerService : NotificationListenerService() {
 
@@ -19,17 +19,13 @@ class YouTubeNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName != YOUTUBE_PACKAGE) return
 
-        val extras = sbn.notification.extras
-
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim()
-        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim()
-
-        if (title.isBlank()) return
+        val notification = sbn.notification
+        val title = YouTubeNotificationParser.parseTitle(notification) ?: return
+        val channel = YouTubeNotificationParser.parseChannel(notification)
 
         val mediaData = YouTubeMediaData(
             title = title,
-            channel = subText ?: text,
+            channel = channel,
             videoUrl = null,
             thumbnailUrl = null,
             durationMs = null,
