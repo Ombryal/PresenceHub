@@ -17,7 +17,10 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onStartRpc: () -> Unit,
+    onStopRpc: () -> Unit,
+    onRefreshPlugins: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -30,9 +33,30 @@ fun SettingsScreen(
         Text(text = "Settings", style = MaterialTheme.typography.headlineLarge)
 
         Card {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "YouTube detection")
-                Text(text = "Needs notification access enabled")
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(text = "RPC Service")
+                Text(text = "Start or stop the foreground service that keeps PresenceHub running.")
+            }
+        }
+
+        Button(onClick = onStartRpc) {
+            Text("Start RPC Service")
+        }
+
+        Button(onClick = onStopRpc) {
+            Text("Stop RPC Service")
+        }
+
+        Card {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(text = "Notification Access")
+                Text(text = "Needed for YouTube detection through notifications.")
             }
         }
 
@@ -44,10 +68,22 @@ fun SettingsScreen(
             Text("Enable Notification Access")
         }
 
+        Card {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(text = "Plugin Store")
+                Text(text = "Refresh the remote plugin index from the plugin repository.")
+            }
+        }
+
+        Button(onClick = onRefreshPlugins) {
+            Text("Refresh Plugin Store")
+        }
+
         Button(onClick = onBack) {
             Text("Back")
         }
-    }
-}        }
     }
 }
