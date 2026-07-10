@@ -61,7 +61,10 @@ fun AppNavigation(
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onStartRpc = onStartRpc,
+                onStopRpc = onStopRpc,
+                onRefreshPlugins = onRefreshPlugins
             )
         }
 
