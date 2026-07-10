@@ -10,5 +10,7 @@ data class PluginRegistryEntry(
     val signature: String? = null,
     val description: String? = null,
     val verified: Boolean = false,
-    val installed: Boolean = false
+    val installed: Boolean = false,
+    val installedVersion: String? = null,
+    val updateAvailable: Boolean = false
 )
