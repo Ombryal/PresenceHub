@@ -6,31 +6,33 @@ import com.ombryal.presencehub.plugins.PluginManager
 class RPCManager(
     private val pluginManager: PluginManager
 ) {
+    private val discordClient = DiscordClient()
     private var currentPresence: Presence? = null
+
+    fun connect() {
+        discordClient.connect()
+    }
+
+    fun disconnect() {
+        discordClient.disconnect()
+    }
 
     fun refreshPresence() {
         val newPresence = pluginManager.getCurrentPresence()
 
         if (newPresence != currentPresence) {
             currentPresence = newPresence
+
             if (newPresence != null) {
-                sendToDiscord(newPresence)
+                discordClient.updatePresence(newPresence)
             } else {
-                clearDiscordPresence()
+                discordClient.clearPresence()
             }
         }
     }
 
     fun clearPresence() {
         currentPresence = null
-        clearDiscordPresence()
-    }
-
-    private fun sendToDiscord(presence: Presence) {
-        // Real Discord RPC implementation comes later.
-    }
-
-    private fun clearDiscordPresence() {
-        // Clear Discord activity here later.
+        discordClient.clearPresence()
     }
 }
