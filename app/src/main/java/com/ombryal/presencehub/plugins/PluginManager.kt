@@ -9,6 +9,7 @@ class PluginManager {
 
     fun registerPlugin(plugin: PresencePlugin) {
         installedPlugins[plugin.pluginId] = plugin
+
         if (activePluginId == null) {
             activePluginId = plugin.pluginId
         }
