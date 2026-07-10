@@ -1,9 +1,9 @@
 package com.ombryal.presencehub.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,6 +31,7 @@ fun AppNavigation(
     storeState: PluginStoreState,
     onRefreshPlugins: () -> Unit,
     onInstallPlugin: (PluginRegistryEntry) -> Unit,
+    onUninstallPlugin: (PluginRegistryEntry) -> Unit,
     onStartRpc: () -> Unit,
     onStopRpc: () -> Unit
 ) {
@@ -95,6 +96,7 @@ fun AppNavigation(
                 PluginDetailsScreen(
                     plugin = plugin,
                     onInstall = onInstallPlugin,
+                    onUninstall = onUninstallPlugin,
                     onBack = { navController.popBackStack() }
                 )
             }
