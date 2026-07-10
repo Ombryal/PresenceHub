@@ -1,11 +1,11 @@
 package com.ombryal.presencehub.plugins
 
-class PluginLoader {
+class PluginLoader(
+    private val trustManager: PluginTrustManager = PluginTrustManager()
+) {
 
     fun install(entry: PluginRegistryEntry): Boolean {
-        if (entry.downloadUrl.isBlank()) return false
-        if (entry.pluginId.isBlank()) return false
-        return true
+        return trustManager.canInstall(entry)
     }
 
     fun uninstall(pluginId: String): Boolean {
