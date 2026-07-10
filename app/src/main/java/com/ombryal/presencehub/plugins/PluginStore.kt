@@ -9,10 +9,19 @@ class PluginStore(
     fun refresh(): Boolean {
         val index = repository.fetchPluginIndex()
         remotePlugins = index?.plugins?.map { plugin ->
+            val installedVersion = installedPluginRegistry?.getInstalledVersion(plugin.pluginId)
+            val installed = installedVersion != null
+            val updateAvailable = installedVersion?.let {
+                PluginVersionUtils.isNewerVersion(plugin.version, it)
+            } ?: false
+
             plugin.copy(
-                installed = installedPluginRegistry?.isInstalled(plugin.pluginId) ?: false
+                installed = installed,
+                installedVersion = installedVersion,
+                updateAvailable = updateAvailable
             )
         } ?: emptyList()
+
         return index != null
     }
 
