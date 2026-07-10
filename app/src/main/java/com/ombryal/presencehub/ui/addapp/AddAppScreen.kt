@@ -50,16 +50,24 @@ fun AddAppScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(text = plugin.name, style = MaterialTheme.typography.titleMedium)
-                    Text(text = "Version: ${plugin.version}")
+                    Text(text = "Remote version: ${plugin.version}")
                     Text(text = if (plugin.verified) "Verified" else "Unverified")
                     Text(text = if (plugin.installed) "Installed" else "Not installed")
+                    plugin.installedVersion?.let { Text(text = "Installed version: $it") }
+                    if (plugin.updateAvailable) {
+                        Text(text = "Update available")
+                    }
                     plugin.description?.let { Text(text = it) }
 
                     Button(onClick = { onOpenDetails(plugin) }) {
                         Text("Details")
                     }
 
-                    if (!plugin.installed) {
+                    if (plugin.updateAvailable) {
+                        Button(onClick = { onInstall(plugin) }) {
+                            Text("Update")
+                        }
+                    } else if (!plugin.installed) {
                         Button(onClick = { onInstall(plugin) }) {
                             Text("Install")
                         }
