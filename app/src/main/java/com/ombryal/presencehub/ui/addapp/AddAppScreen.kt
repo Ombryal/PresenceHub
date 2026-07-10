@@ -27,8 +27,7 @@ fun AddAppScreen(
         Card {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "YouTube Plugin")
-                Text(text = "Twitch Plugin")
-                Text(text = "Spotify Plugin")
+                Text(text = "The only supported provider in this version.")
             }
         }
 
