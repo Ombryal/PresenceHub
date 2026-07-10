@@ -19,7 +19,7 @@ fun HomeScreen(
     onOpenAccount: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenSettings: () -> Unit,
-    onAddApp: () -> Unit
+    onOpenAddApp: () -> Unit
 ) {
     val samplePresence = Presence(
         pluginId = "youtube",
@@ -57,7 +57,7 @@ fun HomeScreen(
             }
         }
 
-        Button(onClick = onAddApp) { Text("YouTube Plugin") }
+        Button(onClick = onOpenAddApp) { Text("YouTube Plugin") }
         Button(onClick = onOpenSettings) { Text("Settings") }
         Button(onClick = onOpenAccount) { Text("Account") }
         Button(onClick = onOpenAbout) { Text("About") }
