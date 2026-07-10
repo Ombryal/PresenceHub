@@ -1,10 +1,15 @@
 package com.ombryal.presencehub.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ombryal.presencehub.plugins.PluginRegistryEntry
+import com.ombryal.presencehub.plugins.PluginStoreState
 import com.ombryal.presencehub.ui.about.AboutScreen
 import com.ombryal.presencehub.ui.account.AccountScreen
 import com.ombryal.presencehub.ui.addapp.AddAppScreen
@@ -23,14 +28,14 @@ object Routes {
 
 @Composable
 fun AppNavigation(
-    availablePlugins: List<PluginRegistryEntry>,
+    storeState: PluginStoreState,
     onRefreshPlugins: () -> Unit,
     onInstallPlugin: (PluginRegistryEntry) -> Unit,
     onStartRpc: () -> Unit,
     onStopRpc: () -> Unit
 ) {
     val navController = rememberNavController()
-    var selectedPlugin: PluginRegistryEntry? = null
+    var selectedPlugin by remember { mutableStateOf<PluginRegistryEntry?>(null) }
 
     NavHost(
         navController = navController,
@@ -38,6 +43,7 @@ fun AppNavigation(
     ) {
         composable(Routes.HOME) {
             HomeScreen(
+                pluginCount = storeState.plugins.size,
                 onOpenAccount = { navController.navigate(Routes.ACCOUNT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -70,7 +76,9 @@ fun AppNavigation(
 
         composable(Routes.ADD_APP) {
             AddAppScreen(
-                availablePlugins = availablePlugins,
+                availablePlugins = storeState.plugins,
+                isLoading = storeState.isLoading,
+                errorMessage = storeState.errorMessage,
                 onRefresh = onRefreshPlugins,
                 onInstall = onInstallPlugin,
                 onOpenDetails = { plugin ->
