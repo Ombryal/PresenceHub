@@ -11,9 +11,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.ombryal.presencehub.plugins.PluginRegistryEntry
 
 @Composable
 fun AddAppScreen(
+    availablePlugins: List<PluginRegistryEntry>,
+    onRefresh: () -> Unit,
+    onInstall: (PluginRegistryEntry) -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -24,12 +28,27 @@ fun AddAppScreen(
     ) {
         Text(text = "Plugin Store", style = MaterialTheme.typography.headlineLarge)
 
-        Card {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "YouTube Plugin")
-                Text(text = "Fetched from the remote plugin repository.")
-                Text(text = "Only supported provider in v1.")
+        Button(onClick = onRefresh) {
+            Text("Refresh Store")
+        }
+
+        availablePlugins.forEach { plugin ->
+            Card {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(text = plugin.name, style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Version: ${plugin.version}")
+                    Text(text = if (plugin.verified) "Verified" else "Unverified")
+                    plugin.description?.let { Text(text = it) }
+
+                    Button(onClick = { onInstall(plugin) }) {
+                        Text("Install")
+                    }
+                }
             }
+        }
+
+        if (availablePlugins.isEmpty()) {
+            Text(text = "No plugins loaded yet.")
         }
 
         Button(onClick = onBack) {
