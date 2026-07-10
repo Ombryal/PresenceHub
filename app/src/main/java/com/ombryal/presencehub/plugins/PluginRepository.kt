@@ -13,8 +13,6 @@ class PluginRepository {
             val connection = openConnection(Constants.PLUGIN_INDEX_URL)
             val response = readResponse(connection)
 
-            // Placeholder parser for now.
-            // Later we can replace this with proper JSON parsing.
             if (response.isNotBlank()) {
                 PluginIndex(
                     version = 1,
@@ -24,9 +22,7 @@ class PluginRepository {
                             name = "YouTube",
                             version = "1.0.0",
                             apiVersion = 1,
-                            downloadUrl = "${
-                                Constants.PLUGIN_REPO_BASE_URL
-                            }/plugins/youtube/youtube-plugin.apk",
+                            downloadUrl = "${Constants.PLUGIN_REPO_BASE_URL}/plugins/youtube/youtube-plugin.apk",
                             checksumSha256 = "",
                             signature = "",
                             description = "Official YouTube Presence plugin.",
