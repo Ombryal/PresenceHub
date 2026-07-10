@@ -10,13 +10,10 @@ class YouTubeProvider : PresencePlugin {
     override val displayName: String = "YouTube"
     override val version: String = "1.0.0"
 
-    private val detector = YouTubeDetector()
     private var currentPresence: Presence? = null
     private var running = false
 
-    override fun isAvailable(): Boolean {
-        return true
-    }
+    override fun isAvailable(): Boolean = true
 
     override fun start() {
         running = true
@@ -31,16 +28,14 @@ class YouTubeProvider : PresencePlugin {
     override fun onPoll() {
         if (!running) return
 
-        val mediaData = detector.detect()
+        val mediaData = YouTubePlaybackStore.get()
         currentPresence = mediaData?.let { YouTubePresenceMapper.map(it) }
     }
 
-    override fun getCurrentPresence(): Presence? {
-        return currentPresence
-    }
+    override fun getCurrentPresence(): Presence? = currentPresence
 
     @Composable
     override fun SettingsScreen() {
-        // YouTube-specific settings UI later.
+        // YouTube settings later
     }
 }
