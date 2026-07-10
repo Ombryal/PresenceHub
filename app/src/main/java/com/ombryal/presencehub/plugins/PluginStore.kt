@@ -5,9 +5,10 @@ class PluginStore(
 ) {
     private var remotePlugins: List<PluginRegistryEntry> = emptyList()
 
-    fun refresh() {
+    fun refresh(): Boolean {
         val index = repository.fetchPluginIndex()
         remotePlugins = index?.plugins ?: emptyList()
+        return index != null
     }
 
     fun getAvailablePlugins(): List<PluginRegistryEntry> {
