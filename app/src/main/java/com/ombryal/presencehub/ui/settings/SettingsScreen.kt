@@ -1,5 +1,7 @@
 package com.ombryal.presencehub.ui.settings
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +12,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -26,14 +31,23 @@ fun SettingsScreen(
 
         Card {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Plugin priority")
-                Text(text = "Update interval")
-                Text(text = "Theme")
+                Text(text = "YouTube detection")
+                Text(text = "Needs notification access enabled")
             }
+        }
+
+        Button(
+            onClick = {
+                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            }
+        ) {
+            Text("Enable Notification Access")
         }
 
         Button(onClick = onBack) {
             Text("Back")
         }
+    }
+}        }
     }
 }
