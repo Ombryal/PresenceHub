@@ -22,12 +22,13 @@ fun AddAppScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = "Add Plugin", style = MaterialTheme.typography.headlineLarge)
+        Text(text = "Plugin Store", style = MaterialTheme.typography.headlineLarge)
 
         Card {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "YouTube Plugin")
-                Text(text = "The only supported provider in this version.")
+                Text(text = "Available")
+                Text(text = "This is the only supported provider in v1.")
             }
         }
 
