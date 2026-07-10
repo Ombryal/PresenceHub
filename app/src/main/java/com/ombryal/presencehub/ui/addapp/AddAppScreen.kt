@@ -52,14 +52,17 @@ fun AddAppScreen(
                     Text(text = plugin.name, style = MaterialTheme.typography.titleMedium)
                     Text(text = "Version: ${plugin.version}")
                     Text(text = if (plugin.verified) "Verified" else "Unverified")
+                    Text(text = if (plugin.installed) "Installed" else "Not installed")
                     plugin.description?.let { Text(text = it) }
 
                     Button(onClick = { onOpenDetails(plugin) }) {
                         Text("Details")
                     }
 
-                    Button(onClick = { onInstall(plugin) }) {
-                        Text("Install")
+                    if (!plugin.installed) {
+                        Button(onClick = { onInstall(plugin) }) {
+                            Text("Install")
+                        }
                     }
                 }
             }
