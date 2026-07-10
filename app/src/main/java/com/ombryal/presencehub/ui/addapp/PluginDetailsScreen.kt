@@ -34,16 +34,26 @@ fun PluginDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(text = "Plugin ID: ${plugin.pluginId}")
-                Text(text = "Version: ${plugin.version}")
+                Text(text = "Remote Version: ${plugin.version}")
+                plugin.installedVersion?.let { Text(text = "Installed Version: $it") }
                 Text(text = "API Version: ${plugin.apiVersion}")
                 Text(text = if (plugin.verified) "Verified" else "Unverified")
                 Text(text = if (plugin.installed) "Installed" else "Not installed")
+                if (plugin.updateAvailable) {
+                    Text(text = "Update available")
+                }
                 plugin.description?.let { Text(text = it) }
                 Text(text = "Download URL: ${plugin.downloadUrl}")
             }
         }
 
         if (plugin.installed) {
+            if (plugin.updateAvailable) {
+                Button(onClick = { onInstall(plugin) }) {
+                    Text("Update")
+                }
+            }
+
             Button(onClick = { onUninstall(plugin) }) {
                 Text("Uninstall")
             }
