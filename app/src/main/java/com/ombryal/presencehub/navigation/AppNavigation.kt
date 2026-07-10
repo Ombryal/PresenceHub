@@ -1,0 +1,62 @@
+package com.ombryal.presencehub.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.ombryal.presencehub.ui.about.AboutScreen
+import com.ombryal.presencehub.ui.account.AccountScreen
+import com.ombryal.presencehub.ui.addapp.AddAppScreen
+import com.ombryal.presencehub.ui.home.HomeScreen
+import com.ombryal.presencehub.ui.settings.SettingsScreen
+
+object Routes {
+    const val HOME = "home"
+    const val ACCOUNT = "account"
+    const val ABOUT = "about"
+    const val SETTINGS = "settings"
+    const val ADD_APP = "add_app"
+}
+
+@Composable
+fun AppNavigation() {
+    val navController = rememberNavController()
+
+    NavHost(
+        navController = navController,
+        startDestination = Routes.HOME
+    ) {
+        composable(Routes.HOME) {
+            HomeScreen(
+                onOpenAccount = { navController.navigate(Routes.ACCOUNT) },
+                onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onAddApp = { navController.navigate(Routes.ADD_APP) }
+            )
+        }
+
+        composable(Routes.ACCOUNT) {
+            AccountScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ABOUT) {
+            AboutScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ADD_APP) {
+            AddAppScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+    }
+}
