@@ -18,6 +18,7 @@ class DiscordRPCHubApp : Application() {
 
         pluginManager = PluginManager()
         pluginManager.registerPlugin(YouTubeProvider())
+        pluginManager.startActivePlugin()
 
         rpcManager = RPCManager(pluginManager)
     }
