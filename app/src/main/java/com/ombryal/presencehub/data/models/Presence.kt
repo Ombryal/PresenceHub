@@ -1,6 +1,7 @@
 package com.ombryal.presencehub.data.models
 
 data class Presence(
+    val pluginId: String,
     val providerName: String,
     val title: String,
     val subtitle: String? = null,
