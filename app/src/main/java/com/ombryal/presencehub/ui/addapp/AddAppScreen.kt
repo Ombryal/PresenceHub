@@ -16,6 +16,8 @@ import com.ombryal.presencehub.plugins.PluginRegistryEntry
 @Composable
 fun AddAppScreen(
     availablePlugins: List<PluginRegistryEntry>,
+    isLoading: Boolean,
+    errorMessage: String?,
     onRefresh: () -> Unit,
     onInstall: (PluginRegistryEntry) -> Unit,
     onOpenDetails: (PluginRegistryEntry) -> Unit,
@@ -33,9 +35,20 @@ fun AddAppScreen(
             Text("Refresh Store")
         }
 
+        if (isLoading) {
+            Text(text = "Loading plugins...")
+        }
+
+        errorMessage?.let {
+            Text(text = it)
+        }
+
         availablePlugins.forEach { plugin ->
             Card {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(text = plugin.name, style = MaterialTheme.typography.titleMedium)
                     Text(text = "Version: ${plugin.version}")
                     Text(text = if (plugin.verified) "Verified" else "Unverified")
@@ -52,7 +65,7 @@ fun AddAppScreen(
             }
         }
 
-        if (availablePlugins.isEmpty()) {
+        if (!isLoading && availablePlugins.isEmpty()) {
             Text(text = "No plugins loaded yet.")
         }
 
