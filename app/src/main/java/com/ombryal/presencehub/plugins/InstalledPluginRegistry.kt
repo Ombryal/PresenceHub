@@ -1,6 +1,7 @@
 package com.ombryal.presencehub.plugins
 
 import android.content.Context
+import org.json.JSONObject
 
 class InstalledPluginRegistry(context: Context) {
 
@@ -9,31 +10,50 @@ class InstalledPluginRegistry(context: Context) {
         Context.MODE_PRIVATE
     )
 
-    fun getInstalledPluginIds(): Set<String> {
-        return preferences.getStringSet(KEY_INSTALLED_IDS, emptySet()) ?: emptySet()
+    fun getInstalledPlugins(): Map<String, String> {
+        val raw = preferences.getString(KEY_INSTALLED_PLUGINS_JSON, null) ?: return emptyMap()
+
+        return try {
+            val root = JSONObject(raw)
+            buildMap {
+                root.keys().forEach { key ->
+                    put(key, root.optString(key))
+                }
+            }
+        } catch (_: Throwable) {
+            emptyMap()
+        }
+    }
+
+    fun getInstalledVersion(pluginId: String): String? {
+        return getInstalledPlugins()[pluginId]
     }
 
     fun isInstalled(pluginId: String): Boolean {
-        return getInstalledPluginIds().contains(pluginId)
+        return getInstalledVersion(pluginId) != null
     }
 
-    fun markInstalled(pluginId: String) {
-        val updated = getInstalledPluginIds().toMutableSet()
-        updated.add(pluginId)
-        preferences.edit().putStringSet(KEY_INSTALLED_IDS, updated).apply()
+    fun markInstalled(pluginId: String, version: String) {
+        val updated = getInstalledPlugins().toMutableMap()
+        updated[pluginId] = version
+
+        val json = JSONObject(updated as Map<*, *>).toString()
+        preferences.edit().putString(KEY_INSTALLED_PLUGINS_JSON, json).apply()
     }
 
     fun markUninstalled(pluginId: String) {
-        val updated = getInstalledPluginIds().toMutableSet()
+        val updated = getInstalledPlugins().toMutableMap()
         updated.remove(pluginId)
-        preferences.edit().putStringSet(KEY_INSTALLED_IDS, updated).apply()
+
+        val json = JSONObject(updated as Map<*, *>).toString()
+        preferences.edit().putString(KEY_INSTALLED_PLUGINS_JSON, json).apply()
     }
 
     fun clearAll() {
-        preferences.edit().remove(KEY_INSTALLED_IDS).apply()
+        preferences.edit().remove(KEY_INSTALLED_PLUGINS_JSON).apply()
     }
 
     private companion object {
-        const val KEY_INSTALLED_IDS = "key_installed_ids"
+        const val KEY_INSTALLED_PLUGINS_JSON = "key_installed_plugins_json"
     }
 }
