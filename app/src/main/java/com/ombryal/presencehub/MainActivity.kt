@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.ombryal.presencehub.plugins.InstalledPluginRegistry
 import com.ombryal.presencehub.plugins.PluginInstallManager
 import com.ombryal.presencehub.plugins.PluginRegistryEntry
 import com.ombryal.presencehub.plugins.PluginStore
@@ -15,13 +16,20 @@ import com.ombryal.presencehub.ui.theme.PresenceHubTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val pluginStore = PluginStore()
-    private val pluginInstallManager = PluginInstallManager()
+    private lateinit var installedPluginRegistry: InstalledPluginRegistry
+    private lateinit var pluginStore: PluginStore
+    private lateinit var pluginInstallManager: PluginInstallManager
 
     private var storeState by mutableStateOf(PluginStoreState(isLoading = true))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        installedPluginRegistry = InstalledPluginRegistry(this)
+        pluginStore = PluginStore(installedPluginRegistry = installedPluginRegistry)
+        pluginInstallManager = PluginInstallManager(
+            installedPluginRegistry = installedPluginRegistry
+        )
 
         refreshPluginStore()
 
@@ -32,6 +40,11 @@ class MainActivity : ComponentActivity() {
                     onRefreshPlugins = { refreshPluginStore() },
                     onInstallPlugin = { plugin ->
                         pluginInstallManager.install(plugin)
+                        refreshPluginStore()
+                    },
+                    onUninstallPlugin = { plugin ->
+                        pluginInstallManager.uninstall(plugin.pluginId)
+                        refreshPluginStore()
                     },
                     onStartRpc = { ServiceController.startRpcService(this) },
                     onStopRpc = { ServiceController.stopRpcService(this) }
