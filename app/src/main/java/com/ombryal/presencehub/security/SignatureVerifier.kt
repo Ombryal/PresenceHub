@@ -7,8 +7,11 @@ object SignatureVerifier {
         signature: ByteArray,
         publicKeyPem: String
     ): Boolean {
-        // Ph for now 
-        // Later gonna use this for real public key verificationn
-        return pluginData.isNotEmpty() && signature.isNotEmpty() && publicKeyPem.isNotBlank()
+        if (pluginData.isEmpty()) return false
+        if (signature.isEmpty()) return false
+        if (publicKeyPem.isBlank()) return false
+
+        // Real RSA/ECDSA verification will be added later.
+        return true
     }
 }
