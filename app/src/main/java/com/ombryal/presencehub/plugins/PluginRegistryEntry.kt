@@ -9,5 +9,6 @@ data class PluginRegistryEntry(
     val checksumSha256: String? = null,
     val signature: String? = null,
     val description: String? = null,
-    val verified: Boolean = false
+    val verified: Boolean = false,
+    val installed: Boolean = false
 )
