@@ -7,6 +7,7 @@ data class PluginRegistryEntry(
     val apiVersion: Int,
     val downloadUrl: String,
     val checksumSha256: String? = null,
+    val signature: String? = null,
     val description: String? = null,
     val verified: Boolean = false
 )
