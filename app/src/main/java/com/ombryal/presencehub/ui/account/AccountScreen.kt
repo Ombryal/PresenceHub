@@ -14,7 +14,9 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AccountScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onStartRpc: () -> Unit,
+    onStopRpc: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -29,6 +31,14 @@ fun AccountScreen(
                 Text(text = "Discord connection status")
                 Text(text = "Not connected")
             }
+        }
+
+        Button(onClick = onStartRpc) {
+            Text("Start RPC Service")
+        }
+
+        Button(onClick = onStopRpc) {
+            Text("Stop RPC Service")
         }
 
         Button(onClick = onBack) {
