@@ -20,7 +20,7 @@ class YouTubeProvider : PresencePlugin {
 
     override fun start() {
         running = true
-        refresh()
+        onPoll()
     }
 
     override fun stop() {
@@ -28,7 +28,7 @@ class YouTubeProvider : PresencePlugin {
         currentPresence = null
     }
 
-    fun refresh() {
+    override fun onPoll() {
         if (!running) return
 
         val mediaData = detector.detect()
