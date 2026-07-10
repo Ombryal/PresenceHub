@@ -1,9 +1,14 @@
 package com.ombryal.presencehub.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ombryal.presencehub.plugins.PluginRegistryEntry
 import com.ombryal.presencehub.ui.about.AboutScreen
 import com.ombryal.presencehub.ui.account.AccountScreen
 import com.ombryal.presencehub.ui.addapp.AddAppScreen
@@ -20,6 +25,9 @@ object Routes {
 
 @Composable
 fun AppNavigation(
+    availablePlugins: List<PluginRegistryEntry>,
+    onRefreshPlugins: () -> Unit,
+    onInstallPlugin: (PluginRegistryEntry) -> Unit,
     onStartRpc: () -> Unit,
     onStopRpc: () -> Unit
 ) {
@@ -34,7 +42,7 @@ fun AppNavigation(
                 onOpenAccount = { navController.navigate(Routes.ACCOUNT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                onAddApp = { navController.navigate(Routes.ADD_APP) }
+                onOpenAddApp = { navController.navigate(Routes.ADD_APP) }
             )
         }
 
@@ -60,6 +68,9 @@ fun AppNavigation(
 
         composable(Routes.ADD_APP) {
             AddAppScreen(
+                availablePlugins = availablePlugins,
+                onRefresh = onRefreshPlugins,
+                onInstall = onInstallPlugin,
                 onBack = { navController.popBackStack() }
             )
         }
