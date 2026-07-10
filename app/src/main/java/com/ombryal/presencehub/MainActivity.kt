@@ -3,6 +3,7 @@ package com.ombryal.presencehub
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.ombryal.presencehub.service.ServiceController
 import com.ombryal.presencehub.ui.theme.PresenceHubTheme
 
 class MainActivity : ComponentActivity() {
@@ -11,7 +12,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PresenceHubTheme {
-                PresenceHubApp()
+                PresenceHubApp(
+                    onStartRpc = { ServiceController.startRpcService(this) },
+                    onStopRpc = { ServiceController.stopRpcService(this) }
+                )
             }
         }
     }
