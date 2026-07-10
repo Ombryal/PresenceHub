@@ -1,8 +1,9 @@
 package com.ombryal.presencehub.plugins
 
 class PluginInstallManager(
+    private val trustManager: PluginTrustManager = PluginTrustManager(),
     private val downloadManager: PluginDownloadManager = PluginDownloadManager(),
-    private val trustManager: PluginTrustManager = PluginTrustManager()
+    private val installedPluginRegistry: InstalledPluginRegistry? = null
 ) {
 
     fun install(entry: PluginRegistryEntry): Boolean {
@@ -10,17 +11,24 @@ class PluginInstallManager(
 
         val bytes = downloadManager.downloadBytes(entry.downloadUrl) ?: return false
 
-        // Public key will be wired in later from the app security layer.
         val publicKeyPem = ""
 
-        return trustManager.verifyDownloadedPlugin(
+        val verified = trustManager.verifyDownloadedPlugin(
             pluginBytes = bytes,
             entry = entry,
             publicKeyPem = publicKeyPem
         )
+
+        if (verified) {
+            installedPluginRegistry?.markInstalled(entry.pluginId)
+        }
+
+        return verified
     }
 
     fun uninstall(pluginId: String): Boolean {
-        return pluginId.isNotBlank()
+        if (pluginId.isBlank()) return false
+        installedPluginRegistry?.markUninstalled(pluginId)
+        return true
     }
 }
