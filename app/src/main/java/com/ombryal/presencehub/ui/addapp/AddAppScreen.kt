@@ -14,9 +14,11 @@ import androidx.compose.ui.unit.dp
 import com.ombryal.presencehub.plugins.PluginRegistryEntry
 
 @Composable
-fun PluginDetailsScreen(
-    plugin: PluginRegistryEntry,
+fun AddAppScreen(
+    availablePlugins: List<PluginRegistryEntry>,
+    onRefresh: () -> Unit,
     onInstall: (PluginRegistryEntry) -> Unit,
+    onOpenDetails: (PluginRegistryEntry) -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -25,21 +27,33 @@ fun PluginDetailsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = plugin.name, style = MaterialTheme.typography.headlineLarge)
+        Text(text = "Plugin Store", style = MaterialTheme.typography.headlineLarge)
 
-        Card {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(text = "Plugin ID: ${plugin.pluginId}")
-                Text(text = "Version: ${plugin.version}")
-                Text(text = "API Version: ${plugin.apiVersion}")
-                Text(text = if (plugin.verified) "Verified" else "Unverified")
-                plugin.description?.let { Text(text = it) }
-                Text(text = "Download URL: ${plugin.downloadUrl}")
+        Button(onClick = onRefresh) {
+            Text("Refresh Store")
+        }
+
+        availablePlugins.forEach { plugin ->
+            Card {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(text = plugin.name, style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Version: ${plugin.version}")
+                    Text(text = if (plugin.verified) "Verified" else "Unverified")
+                    plugin.description?.let { Text(text = it) }
+
+                    Button(onClick = { onOpenDetails(plugin) }) {
+                        Text("Details")
+                    }
+
+                    Button(onClick = { onInstall(plugin) }) {
+                        Text("Install")
+                    }
+                }
             }
         }
 
-        Button(onClick = { onInstall(plugin) }) {
-            Text("Install")
+        if (availablePlugins.isEmpty()) {
+            Text(text = "No plugins loaded yet.")
         }
 
         Button(onClick = onBack) {
