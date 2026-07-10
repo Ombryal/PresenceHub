@@ -1,26 +1,17 @@
 package com.ombryal.presencehub.plugins
 
-class PluginStore {
+class PluginStore(
+    private val repository: PluginRepository = PluginRepository()
+) {
+    private var remotePlugins: List<PluginRegistryEntry> = emptyList()
 
-    private val remotePlugins = mutableListOf<PluginRegistryEntry>()
-
-    fun loadMockData() {
-        remotePlugins.clear()
-        remotePlugins.add(
-            PluginRegistryEntry(
-                pluginId = "youtube",
-                name = "YouTube Plugin",
-                version = "1.0.0",
-                apiVersion = 1,
-                downloadUrl = "https://github.com/Ombryal/PresenceHub/releases",
-                description = "Detects YouTube playback and sends presence to Discord.",
-                verified = true
-            )
-        )
+    fun refresh() {
+        val index = repository.fetchPluginIndex()
+        remotePlugins = index?.plugins ?: emptyList()
     }
 
     fun getAvailablePlugins(): List<PluginRegistryEntry> {
-        return remotePlugins.toList()
+        return remotePlugins
     }
 
     fun findById(pluginId: String): PluginRegistryEntry? {
