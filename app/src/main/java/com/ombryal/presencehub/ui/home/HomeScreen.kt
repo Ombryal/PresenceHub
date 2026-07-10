@@ -25,7 +25,7 @@ fun HomeScreen(
         pluginId = "youtube",
         providerName = "YouTube",
         title = "Waiting for YouTube",
-        subtitle = "No video detected yet",
+        subtitle = "Enable notification access to begin",
         state = "Idle",
         buttonLabel = "Open YouTube",
         buttonUrl = "https://youtube.com"
