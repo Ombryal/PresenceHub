@@ -24,9 +24,9 @@ fun HomeScreen(
     val samplePresence = Presence(
         pluginId = "youtube",
         providerName = "YouTube",
-        title = "Sample Video Title",
-        subtitle = "Sample Channel",
-        state = "Watching",
+        title = "Waiting for YouTube",
+        subtitle = "No video detected yet",
+        state = "Idle",
         buttonLabel = "Open YouTube",
         buttonUrl = "https://youtube.com"
     )
@@ -57,7 +57,7 @@ fun HomeScreen(
             }
         }
 
-        Button(onClick = onAddApp) { Text("Add Plugin") }
+        Button(onClick = onAddApp) { Text("YouTube Plugin") }
         Button(onClick = onOpenSettings) { Text("Settings") }
         Button(onClick = onOpenAccount) { Text("Account") }
         Button(onClick = onOpenAbout) { Text("About") }
