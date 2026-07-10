@@ -1,20 +1,21 @@
-# Android
 .gradle/
+.idea/
+
 local.properties
+
+/build
+**/build/
+
 captures/
-.cxx/
+
 .externalNativeBuild/
+.cxx/
 
-# Build outputs
-build/
-*/build/
+*.iml
 
-# Secrets
 .env
 .env.*
-secrets/
-keys/
-private/
+
 *.jks
 *.keystore
 *.pem
@@ -22,10 +23,8 @@ private/
 *.p12
 *.pfx
 
-# Firebase / backend private credentials
 service-account.json
 firebase-admin.json
 
-# IDE
-.idea/
 .DS_Store
+Thumbs.db
