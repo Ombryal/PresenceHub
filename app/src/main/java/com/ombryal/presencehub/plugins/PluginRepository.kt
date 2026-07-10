@@ -12,27 +12,7 @@ class PluginRepository {
         return try {
             val connection = openConnection(Constants.PLUGIN_INDEX_URL)
             val response = readResponse(connection)
-
-            if (response.isNotBlank()) {
-                PluginIndex(
-                    version = 1,
-                    plugins = listOf(
-                        PluginRegistryEntry(
-                            pluginId = "youtube",
-                            name = "YouTube",
-                            version = "1.0.0",
-                            apiVersion = 1,
-                            downloadUrl = "${Constants.PLUGIN_REPO_BASE_URL}/plugins/youtube/youtube-plugin.apk",
-                            checksumSha256 = "",
-                            signature = "",
-                            description = "Official YouTube Presence plugin.",
-                            verified = true
-                        )
-                    )
-                )
-            } else {
-                null
-            }
+            PluginJsonParser.parseIndex(response)
         } catch (_: Throwable) {
             null
         }
@@ -44,6 +24,7 @@ class PluginRepository {
             requestMethod = "GET"
             connectTimeout = 10_000
             readTimeout = 10_000
+            useCaches = false
         }
     }
 
