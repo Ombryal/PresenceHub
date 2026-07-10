@@ -17,6 +17,7 @@ import com.ombryal.presencehub.plugins.PluginRegistryEntry
 fun PluginDetailsScreen(
     plugin: PluginRegistryEntry,
     onInstall: (PluginRegistryEntry) -> Unit,
+    onUninstall: (PluginRegistryEntry) -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -28,18 +29,28 @@ fun PluginDetailsScreen(
         Text(text = plugin.name, style = MaterialTheme.typography.headlineLarge)
 
         Card {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(text = "Plugin ID: ${plugin.pluginId}")
                 Text(text = "Version: ${plugin.version}")
                 Text(text = "API Version: ${plugin.apiVersion}")
                 Text(text = if (plugin.verified) "Verified" else "Unverified")
+                Text(text = if (plugin.installed) "Installed" else "Not installed")
                 plugin.description?.let { Text(text = it) }
                 Text(text = "Download URL: ${plugin.downloadUrl}")
             }
         }
 
-        Button(onClick = { onInstall(plugin) }) {
-            Text("Install")
+        if (plugin.installed) {
+            Button(onClick = { onUninstall(plugin) }) {
+                Text("Uninstall")
+            }
+        } else {
+            Button(onClick = { onInstall(plugin) }) {
+                Text("Install")
+            }
         }
 
         Button(onClick = onBack) {
