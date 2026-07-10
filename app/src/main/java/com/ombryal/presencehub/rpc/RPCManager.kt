@@ -6,7 +6,6 @@ import com.ombryal.presencehub.plugins.PluginManager
 class RPCManager(
     private val pluginManager: PluginManager
 ) {
-
     private var currentPresence: Presence? = null
 
     fun refreshPresence() {
@@ -14,7 +13,6 @@ class RPCManager(
 
         if (newPresence != currentPresence) {
             currentPresence = newPresence
-
             if (newPresence != null) {
                 sendToDiscord(newPresence)
             } else {
@@ -29,11 +27,10 @@ class RPCManager(
     }
 
     private fun sendToDiscord(presence: Presence) {
-        // TODO: Connect this to the real Discord RPC implementation later.
-        // This is only the app-side bridge for now.
+        // Real Discord RPC implementation comes later.
     }
 
     private fun clearDiscordPresence() {
-        // TODO: Clear Discord activity here.
+        // Clear Discord activity here later.
     }
 }
