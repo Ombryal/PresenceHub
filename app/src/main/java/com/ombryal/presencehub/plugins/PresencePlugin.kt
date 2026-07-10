@@ -11,6 +11,13 @@ interface PresencePlugin {
     fun isAvailable(): Boolean
     fun start()
     fun stop()
+
+    fun onPoll() {
+        // Default no-op
+    }
+
     fun getCurrentPresence(): Presence?
-    @Composable fun SettingsScreen()
+
+    @Composable
+    fun SettingsScreen()
 }
