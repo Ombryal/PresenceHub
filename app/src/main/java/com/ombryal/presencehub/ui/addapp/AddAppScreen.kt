@@ -27,8 +27,8 @@ fun AddAppScreen(
         Card {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "YouTube Plugin")
-                Text(text = "Available")
-                Text(text = "This is the only supported provider in v1.")
+                Text(text = "Fetched from the remote plugin repository.")
+                Text(text = "Only supported provider in v1.")
             }
         }
 
