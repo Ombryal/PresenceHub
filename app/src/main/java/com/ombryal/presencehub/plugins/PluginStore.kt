@@ -7,15 +7,24 @@ class PluginStore(
     private var remotePlugins: List<PluginRegistryEntry> = emptyList()
 
     fun refresh(): Boolean {
-        val index = repository.fetchPluginIndex()
-        remotePlugins = index?.plugins?.map { plugin ->
-            val installedVersion = installedPluginRegistry?.getInstalledVersion(plugin.pluginId)
+        val index = repository.fetchRemoteIndex()
+        remotePlugins = index?.plugins?.map { remote ->
+            val installedVersion = installedPluginRegistry?.getInstalledVersion(remote.pluginId)
             val installed = installedVersion != null
             val updateAvailable = installedVersion?.let {
-                PluginVersionUtils.isNewerVersion(plugin.version, it)
+                PluginVersionUtils.isNewerVersion(remote.version, it)
             } ?: false
 
-            plugin.copy(
+            PluginRegistryEntry(
+                pluginId = remote.pluginId,
+                name = remote.name,
+                version = remote.version,
+                apiVersion = remote.apiVersion,
+                downloadUrl = remote.packageUrl,
+                checksumSha256 = null,
+                signature = null,
+                description = remote.description,
+                verified = remote.verified,
                 installed = installed,
                 installedVersion = installedVersion,
                 updateAvailable = updateAvailable
