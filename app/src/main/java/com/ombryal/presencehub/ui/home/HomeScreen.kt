@@ -39,9 +39,9 @@ fun HomeScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(text = "Current Status", style = MaterialTheme.typography.titleMedium)
+                Text(text = "Status", style = MaterialTheme.typography.titleMedium)
                 Text(text = "Installed plugins: $pluginCount")
-                Text(text = "Only YouTube is supported in v1.")
+                Text(text = "YouTube is the only supported provider in v1.")
             }
         }
 
