@@ -33,6 +33,7 @@ object PluginJsonParser {
             name = obj.optString("name"),
             version = obj.optString("version"),
             apiVersion = obj.optInt("apiVersion", 1),
+            author = obj.optString("author", "Unknown"),
             downloadUrl = obj.optString("packageUrl", obj.optString("downloadUrl")),
             checksumSha256 = obj.optString("checksumSha256", null),
             signature = obj.optString("signature", null),
