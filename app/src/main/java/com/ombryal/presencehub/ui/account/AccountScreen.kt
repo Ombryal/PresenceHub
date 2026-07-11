@@ -27,7 +27,10 @@ fun AccountScreen(
         Text(text = "Account", style = MaterialTheme.typography.headlineLarge)
 
         Card {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(text = "Discord connection status")
                 Text(text = "Not connected")
             }
