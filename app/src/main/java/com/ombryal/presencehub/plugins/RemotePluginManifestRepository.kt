@@ -26,10 +26,10 @@ class RemotePluginManifestRepository {
                 version = obj.optString("version"),
                 apiVersion = obj.optInt("apiVersion", 1),
                 author = obj.optString("author"),
-                description = obj.optString("description", null),
+                description = obj.optString("description").takeIf { it.isNotBlank() },
                 packageUrl = obj.optString("packageUrl"),
-                checksumSha256 = obj.optString("checksumSha256", null),
-                signatureUrl = obj.optString("signatureUrl", null),
+                checksumSha256 = obj.optString("checksumSha256").takeIf { it.isNotBlank() },
+                signatureUrl = obj.optString("signatureUrl").takeIf { it.isNotBlank() },
                 verified = obj.optBoolean("verified", false)
             )
         } catch (_: Throwable) {
