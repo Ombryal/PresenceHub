@@ -17,12 +17,16 @@ object PluginDescriptorMapper {
         )
     }
 
-    fun toRegistryEntry(descriptor: PluginDescriptor, downloadUrl: String): PluginRegistryEntry {
+    fun toRegistryEntry(
+        descriptor: PluginDescriptor,
+        downloadUrl: String
+    ): PluginRegistryEntry {
         return PluginRegistryEntry(
             pluginId = descriptor.pluginId,
             name = descriptor.name,
             version = descriptor.version,
             apiVersion = descriptor.apiVersion,
+            author = descriptor.author,
             downloadUrl = downloadUrl,
             checksumSha256 = null,
             signature = null,
