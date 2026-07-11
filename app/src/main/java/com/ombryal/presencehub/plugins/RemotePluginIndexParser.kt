@@ -34,11 +34,11 @@ object RemotePluginIndexParser {
             version = obj.optString("version"),
             apiVersion = obj.optInt("apiVersion", 1),
             author = obj.optString("author"),
-            description = obj.optString("description", null),
+            description = obj.optString("description").takeIf { it.isNotBlank() },
             manifestUrl = obj.optString("manifestUrl"),
             packageUrl = obj.optString("packageUrl"),
-            checksumUrl = obj.optString("checksumUrl", null),
-            signatureUrl = obj.optString("signatureUrl", null),
+            checksumUrl = obj.optString("checksumUrl").takeIf { it.isNotBlank() },
+            signatureUrl = obj.optString("signatureUrl").takeIf { it.isNotBlank() },
             verified = obj.optBoolean("verified", false)
         )
     }
