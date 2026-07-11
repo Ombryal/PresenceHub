@@ -7,9 +7,7 @@ class PluginLoader(
 
     fun load(plugin: PluginRegistryEntry): Boolean {
         val details = detailsRepository.fetchDetails(plugin) ?: return false
-        val compatible = PluginPackageValidator.isCompatible(details)
-        if (!compatible) return false
-
+        if (!PluginPackageValidator.isCompatible(details)) return false
         return installManager.install(plugin)
     }
 
