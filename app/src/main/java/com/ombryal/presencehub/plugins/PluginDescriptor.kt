@@ -5,7 +5,10 @@ data class PluginDescriptor(
     val name: String,
     val version: String,
     val apiVersion: Int,
-    val downloadUrl: String? = null,
-    val checksumSha256: String? = null,
-    val verified: Boolean = false
+    val author: String,
+    val description: String? = null,
+    val verified: Boolean = false,
+    val installed: Boolean = false,
+    val installedVersion: String? = null,
+    val updateAvailable: Boolean = false
 )
