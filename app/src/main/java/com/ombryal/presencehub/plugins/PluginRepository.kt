@@ -8,11 +8,11 @@ import java.net.URL
 
 class PluginRepository {
 
-    fun fetchPluginIndex(): PluginIndex? {
+    fun fetchRemoteIndex(): RemotePluginIndex? {
         return try {
             val connection = openConnection(Constants.PLUGIN_INDEX_URL)
             val response = readResponse(connection)
-            PluginJsonParser.parseIndex(response)
+            RemotePluginIndexParser.parse(response)
         } catch (_: Throwable) {
             null
         }
