@@ -37,15 +37,15 @@ fun AccountScreen(
         }
 
         Button(onClick = onStartRpc) {
-            Text("Start RPC Service")
+            Text(text = "Start RPC Service")
         }
 
         Button(onClick = onStopRpc) {
-            Text("Stop RPC Service")
+            Text(text = "Stop RPC Service")
         }
 
         Button(onClick = onBack) {
-            Text("Back")
+            Text(text = "Back")
         }
     }
 }
