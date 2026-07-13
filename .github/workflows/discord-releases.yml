@@ -1,215 +1,23 @@
-name: Github Releases
+name: Release to Discord
 
 on:
   release:
-    types:
-      - published
+    types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag (leave empty for latest)'
-        required: false
-        default: ''
 
 jobs:
-  discord-release:
+  notify:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Format Release Message
+      - name: Send release message
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IS_WORKFLOW_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
-          INPUT_TAG: ${{ github.event.inputs.tag }}
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          python3 <<'PY'
-          import json, os, pathlib, re, subprocess
+          TITLE="${{ github.event.release.name || github.event.release.tag_name }}"
+          URL="${{ github.event.release.html_url }}"
+          CONTENT="🚀 **${TITLE}**\n🔗 ${URL}"
 
-          is_dispatch = os.environ.get("IS_WORKFLOW_DISPATCH") == "true"
-
-          if is_dispatch:
-              tag = os.environ.get("INPUT_TAG", "").strip()
-              print(f"Manual run. Tag: {'latest' if not tag else tag}")
-
-              if tag:
-                  result = subprocess.run(
-                      ["gh", "api", f"/repos/{os.environ['GITHUB_REPOSITORY']}/releases/tags/{tag}"],
-                      capture_output=True, text=True
-                  )
-              else:
-                  result = subprocess.run(
-                      ["gh", "api", f"/repos/{os.environ['GITHUB_REPOSITORY']}/releases/latest"],
-                      capture_output=True, text=True
-                  )
-
-              if result.returncode != 0:
-                  raise RuntimeError(f"Failed to fetch release: {result.stderr}")
-
-              release = json.loads(result.stdout)
-              repo = os.environ["GITHUB_REPOSITORY"]
-          else:
-              event_path = os.environ.get("GITHUB_EVENT_PATH")
-              if not event_path:
-                  raise RuntimeError("GITHUB_EVENT_PATH not set")
-              with open(event_path, "r", encoding="utf-8") as f:
-                  data = json.load(f)
-              release = data["release"]
-              repo = data["repository"]["full_name"]
-
-          title = release.get("name") or release.get("tag_name")
-          tag = release.get("tag_name")
-          body = release.get("body") or ""
-          url = release.get("html_url")
-          assets = release.get("assets", [])
-
-          def get_section(heading_pattern, next_section_patterns=None):
-              match = re.search(heading_pattern, body, re.IGNORECASE)
-              if not match:
-                  return ""
-              start = match.end()
-              remaining = body[start:]
-              end = len(remaining)
-              if next_section_patterns:
-                  for pat in next_section_patterns:
-                      m = re.search(pat, remaining, re.IGNORECASE)
-                      if m and m.start() < end:
-                          end = m.start()
-              return remaining[:end].strip()
-
-          whats_new_pat = r'(?:✨\s*)?what\'?s?\s*new'
-          improvements_pat = r'(?:🛠\s*)?improvements'
-          fixes_pat = r'(?:🐛\s*)?fixes'
-
-          whats_new = get_section(whats_new_pat, [improvements_pat, fixes_pat])
-          improvements = get_section(improvements_pat, [fixes_pat])
-          fixes = get_section(fixes_pat, [])
-
-          message_lines = [
-              f"🚀 **{title}**",
-              "",
-              f"📦 Version: `{tag}`",
-              f"📁 Repository: `{repo}`",
-              "",
-              "━━━━━━━━━━━━━━━━━━━━"
-          ]
-
-          if whats_new:
-              message_lines += ["", "✨ **What's New**", "", whats_new]
-          if improvements:
-              message_lines += ["", "━━━━━━━━━━━━━━━━━━━━", "", "🛠 **Improvements**", "", improvements]
-          if fixes:
-              message_lines += ["", "━━━━━━━━━━━━━━━━━━━━", "", "🐛 **Fixes**", "", fixes]
-
-          message_lines += [
-              "",
-              "━━━━━━━━━━━━━━━━━━━━",
-              "",
-              "📥 **Downloads**",
-              ""
-          ]
-
-          def label(filename):
-              name = filename.lower()
-              if name.endswith(".apk"):
-                  if "arm64" in name:
-                      return "📱 Download APK (Arm64)"
-                  if "armeabi" in name or "armeabi-v7a" in name:
-                      return "📱 Download APK (Armeabi-v7a)"
-                  if "universal" in name:
-                      return "📱 Download APK (Universal)"
-                  return "📱 Download APK"
-              if ".exe" in name or "installer" in name:
-                  return "🪟 Download Windows Installer"
-              if "linux" in name and (".zip" in name or ".tar" in name):
-                  return "🐧 Download Linux"
-              if ".ipa" in name:
-                  return "📱 Download iOS IPA"
-              if ".dmg" in name or "macos" in name or ".pkg" in name:
-                  return "🍎 Download macOS"
-              return f"📎 {filename}"
-
-          for asset in assets:
-              message_lines.append(label(asset["name"]))
-              message_lines.append(asset["browser_download_url"])
-              message_lines.append("")
-
-          message_lines += [
-              "━━━━━━━━━━━━━━━━━━━━",
-              "",
-              "🔗 Full Release:",
-              url
-          ]
-
-          pathlib.Path("discord_message.txt").write_text("\n".join(message_lines), encoding="utf-8")
-          print("Message file written successfully.")
-          PY
-
-      - name: Debug Webhook Secret
-        env:
-          WEBHOOK: ${{ secrets.RELEASE_WEBHOOK }}
-        run: |
-          if [ -z "$WEBHOOK" ]; then
-            echo "ERROR: WEBHOOK secret is empty"
-            exit 1
-          fi
-          echo "Webhook URL length: ${#WEBHOOK}"
-          echo "First 60 chars: ${WEBHOOK:0:60}..."
-          if [[ "$WEBHOOK" != https://discord.com/api/webhooks/* ]]; then
-            echo "ERROR: URL does not start with https://discord.com/api/webhooks/"
-            exit 1
-          fi
-          echo "Webhook URL format looks OK"
-
-      - name: Send To Discord
-        env:
-          WEBHOOK: ${{ secrets.RELEASE_WEBHOOK }}
-        run: |
-          python3 <<'PY'
-          import json, os, pathlib, urllib.request, urllib.error
-
-          webhook_url = os.environ.get("WEBHOOK", "")
-          if not webhook_url:
-              raise ValueError("WEBHOOK secret is empty or not set.")
-          if not webhook_url.startswith("https://discord.com/api/webhooks/"):
-              raise ValueError(f"Invalid webhook URL prefix: {webhook_url[:60]}...")
-
-          msg_file = pathlib.Path("discord_message.txt")
-          if not msg_file.exists():
-              raise FileNotFoundError("discord_message.txt not found.")
-
-          content = msg_file.read_text(encoding="utf-8")
-          print(f"Message length: {len(content)} characters")
-
-          MAX_LEN = 2000
-
-          def send_chunk(chunk):
-              payload = {"username": "Github Releases", "content": chunk}
-              data = json.dumps(payload).encode("utf-8")
-              req = urllib.request.Request(
-                  webhook_url,
-                  data=data,
-                  headers={"Content-Type": "application/json"}
-              )
-              try:
-                  with urllib.request.urlopen(req) as resp:
-                      if resp.status == 204:
-                          print(f"Sent chunk ({len(chunk)} chars)")
-                      else:
-                          print(f"Unexpected status: {resp.status}")
-              except urllib.error.HTTPError as e:
-                  print(f"HTTP {e.code} {e.reason}: Webhook URL may be invalid or revoked.")
-                  raise
-
-          lines = content.splitlines(keepends=True)
-          current_chunk = ""
-          for line in lines:
-              if len(current_chunk) + len(line) > MAX_LEN:
-                  send_chunk(current_chunk.rstrip())
-                  current_chunk = line
-              else:
-                  current_chunk += line
-          if current_chunk.strip():
-              send_chunk(current_chunk.rstrip())
-
-          print("All chunks sent.")
-          PY
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg content "$CONTENT" '{username: "GitHub Releases", content: $content}')" \
+            "$WEBHOOK"
