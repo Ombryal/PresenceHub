@@ -34,7 +34,6 @@ jobs:
           assets = release.get("assets", [])
 
           def clean_content(text):
-              """Strip ** wrapping, leading/trailing whitespace and newlines."""
               t = text.strip()
               if t.startswith("**"):
                   t = t[2:]
@@ -69,7 +68,7 @@ jobs:
           lines.append(f"🚀 **{title}**")
           lines.append(f"📦 Version: `{tag}`")
           lines.append(f"📁 Repository: `{repo}`")
-          lines.append("")            # single blank line
+          lines.append("")
 
           if whats_new:
               lines.append("✨ **What's New**")
@@ -113,7 +112,7 @@ jobs:
               dl_url = asset["browser_download_url"]
               lines.append(f"[{dl_label}]({dl_url})")
 
-          lines.append("")            # blank line before final link
+          lines.append("")
           lines.append(f"[🔗 Full Release]({url})")
 
           full_msg = "\n".join(lines)
