@@ -9,14 +9,28 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send release message
+      - name: Send latest release to Discord
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          TITLE="${{ github.event.release.name || github.event.release.tag_name }}"
-          URL="${{ github.event.release.html_url }}"
+          # Fetch the latest release info from the GitHub API
+          RELEASE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+
+          TITLE=$(echo "$RELEASE" | jq -r '.name // .tag_name')
+          URL=$(echo "$RELEASE" | jq -r '.html_url')
+          BODY=$(echo "$RELEASE" | jq -r '.body // ""')
+
+          # Build a clean Discord message (plain text, no embeds for simplicity)
           CONTENT="🚀 **${TITLE}**\n🔗 ${URL}"
 
+          # Add release body only if it exists and is short
+          if [ -n "$BODY" ] && [ ${#BODY} -lt 500 ]; then
+            CONTENT="${CONTENT}\n\n${BODY}"
+          fi
+
+          # Send to Discord
           curl -s -X POST \
             -H "Content-Type: application/json" \
             -d "$(jq -n --arg content "$CONTENT" '{username: "GitHub Releases", content: $content}')" \
