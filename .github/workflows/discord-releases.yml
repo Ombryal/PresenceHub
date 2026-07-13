@@ -6,260 +6,181 @@ on:
       - published
 
 jobs:
-  notify_discord:
+  discord-release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Build Discord release message
+      - name: Format Release Message
         env:
           EVENT_PATH: ${{ github.event_path }}
         run: |
-          python - <<'PY'
+          python3 <<'PY'
           import json
           import os
           import pathlib
-          import re
           from datetime import datetime
 
           with open(os.environ["EVENT_PATH"], "r", encoding="utf-8") as f:
-              event = json.load(f)
+              data = json.load(f)
 
-          release = event["release"]
-          repo = event["repository"]["full_name"]
-          title = release.get("name") or release.get("tag_name") or "New Release"
-          tag = release.get("tag_name") or "unknown"
-          body = (release.get("body") or "").strip()
-          html_url = release.get("html_url", "")
-          published_at = release.get("published_at")
+          release = data["release"]
+
+          title = release.get("name") or release.get("tag_name")
+          tag = release.get("tag_name")
+          body = release.get("body") or ""
+          repo = data["repository"]["full_name"]
+          url = release.get("html_url")
+
           assets = release.get("assets", [])
 
-          def pretty_date(value: str | None):
-              if not value:
-                  return None
-              try:
-                  dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-                  return dt.strftime("%d/%m/%Y %I:%M %p")
-              except Exception:
-                  return value
+          def clean_section(text):
+              return text.strip()
 
-          def asset_label(name: str):
-              n = name.lower()
+          def get_section(name, next_sections):
+              start = body.lower().find(name.lower())
 
-              if n.endswith(".apk"):
-                  if "arm64-v8a" in n or "arm64" in n:
+              if start == -1:
+                  return ""
+
+              content = body[start + len(name):]
+
+              end = len(content)
+
+              for section in next_sections:
+                  pos = content.lower().find(section.lower())
+                  if pos != -1:
+                      end = min(end, pos)
+
+              return clean_section(content[:end])
+
+          whats_new = get_section(
+              "✨ What's New",
+              ["🛠 Improvements", "🐛 Fixes"]
+          )
+
+          improvements = get_section(
+              "🛠 Improvements",
+              ["🐛 Fixes"]
+          )
+
+          fixes = get_section(
+              "🐛 Fixes",
+              []
+          )
+
+          message = []
+
+          message.append(f"🚀 **{title}**")
+          message.append("")
+          message.append(f"📦 Version: `{tag}`")
+          message.append(f"📁 Repository: `{repo}`")
+          message.append("")
+
+          message.append("━━━━━━━━━━━━━━━━━━━━")
+
+          if whats_new:
+              message.append("")
+              message.append("✨ **What's New**")
+              message.append("")
+              message.append(whats_new)
+
+          if improvements:
+              message.append("")
+              message.append("━━━━━━━━━━━━━━━━━━━━")
+              message.append("")
+              message.append("🛠 **Improvements**")
+              message.append("")
+              message.append(improvements)
+
+          if fixes:
+              message.append("")
+              message.append("━━━━━━━━━━━━━━━━━━━━")
+              message.append("")
+              message.append("🐛 **Fixes**")
+              message.append("")
+              message.append(fixes)
+
+          message.append("")
+          message.append("━━━━━━━━━━━━━━━━━━━━")
+          message.append("")
+          message.append("📥 **Downloads**")
+          message.append("")
+
+          def label(asset):
+              name = asset.lower()
+
+              if name.endswith(".apk"):
+                  if "arm64" in name:
                       return "📱 Download APK (Arm64)"
-                  if "armeabi-v7a" in n or "armeabi" in n:
+                  if "armeabi" in name:
                       return "📱 Download APK (Armeabi-v7a)"
-                  if "universal" in n:
+                  if "universal" in name:
                       return "📱 Download APK (Universal)"
                   return "📱 Download APK"
 
-              if n.endswith(".exe") or "installer" in n or "windows" in n:
+              if ".exe" in name or "installer" in name:
                   return "🪟 Download Windows Installer"
 
-              if n.endswith(".zip") and ("linux" in n or "linuxzip" in n):
+              if "linux" in name and ".zip" in name:
                   return "🐧 Download Linux ZIP"
 
-              if n.endswith(".dmg") or "macos" in n:
-                  return "🍎 Download macOS"
-
-              if n.endswith(".ipa") or "ios" in n:
+              if ".ipa" in name:
                   return "📱 Download iOS IPA"
+
+              if ".dmg" in name or "macos" in name:
+                  return "🍎 Download macOS"
 
               return None
 
-          def clean_lines(text: str):
-              lines = []
-              for raw in text.splitlines():
-                  line = raw.rstrip()
-                  if line.strip().lower() in {
-                      "beta warning",
-                      "alpha warning",
-                      "warning",
-                      "this is a beta release.",
-                      "this is an alpha release.",
-                  }:
-                      continue
-                  lines.append(line)
-              return lines
-
-          def parse_sections(text: str):
-              sections = {
-                  "what's new": [],
-                  "improvements": [],
-                  "fixes": []
-              }
-
-              current = None
-              lines = clean_lines(text)
-
-              heading_map = {
-                  "what's new": "what's new",
-                  "whats new": "what's new",
-                  "what’s new": "what's new",
-                  "new": "what's new",
-                  "features": "what's new",
-
-                  "improvements": "improvements",
-                  "improvement": "improvements",
-                  "refactors": "improvements",
-                  "style changes": "improvements",
-                  "performance improvements": "improvements",
-                  "chores & documentation": "improvements",
-                  "chore": "improvements",
-                  "docs": "improvements",
-
-                  "fixes": "fixes",
-                  "bug fixes": "fixes",
-                  "bug fixes & improvements": "fixes",
-                  "bugs": "fixes",
-                  "bugs & fixes": "fixes",
-              }
-
-              heading_re = re.compile(r'^[\s>*#-]*([^\n:]{2,80}?)[\s:]*$')
-
-              for line in lines:
-                  stripped = line.strip()
-                  if not stripped:
-                      if current:
-                          sections[current].append("")
-                      continue
-
-                  low = stripped.lower()
-                  low = low.replace("✨", "").replace("🐛", "").replace("🔧", "").replace("🎨", "").replace("🚀", "")
-                  low = low.replace("📦", "").replace("🧹", "").replace("⚙️", "").strip()
-                  low = low.lstrip("#").strip()
-
-                  if low in heading_map:
-                      current = heading_map[low]
-                      continue
-
-                  m = heading_re.match(stripped)
-                  if m:
-                      candidate = m.group(1).strip().lower()
-                      candidate = candidate.replace("✨", "").replace("🐛", "").replace("🔧", "").replace("🎨", "").replace("🚀", "").strip()
-                      if candidate in heading_map:
-                          current = heading_map[candidate]
-                          continue
-
-                  if current:
-                      sections[current].append(stripped)
-                  else:
-                      # If the body starts without a heading, treat it as What's New.
-                      current = "what's new"
-                      sections[current].append(stripped)
-
-              return sections
-
-          def compact_section(lines):
-              out = []
-              prev_blank = False
-              for line in lines:
-                  blank = not line.strip()
-                  if blank:
-                      if prev_blank:
-                          continue
-                      prev_blank = True
-                      out.append("")
-                  else:
-                      prev_blank = False
-                      out.append(line.strip())
-              while out and not out[0].strip():
-                  out.pop(0)
-              while out and not out[-1].strip():
-                  out.pop()
-              return "\n".join(out).strip()
-
-          sections = parse_sections(body)
-
-          notes = []
-          notes.append(f"🚀 **{title}**")
-          notes.append(f"**Version:** `{tag}`")
-          if repo:
-              notes.append(f"**Repository:** `{repo}`")
-          if published_at:
-              notes.append(f"**Released:** `{pretty_date(published_at)}`")
-          notes.append("")
-          notes.append("━━━━━━━━━━━━━━━━━━━━")
-          notes.append("")
-
-          if compact_section(sections["what's new"]):
-              notes.append("**✨ What's New**")
-              notes.append("")
-              notes.append(compact_section(sections["what's new"]))
-              notes.append("")
-              notes.append("━━━━━━━━━━━━━━━━━━━━")
-              notes.append("")
-
-          if compact_section(sections["improvements"]):
-              notes.append("**🛠 Improvements**")
-              notes.append("")
-              notes.append(compact_section(sections["improvements"]))
-              notes.append("")
-              notes.append("━━━━━━━━━━━━━━━━━━━━")
-              notes.append("")
-
-          if compact_section(sections["fixes"]):
-              notes.append("**🐛 Fixes**")
-              notes.append("")
-              notes.append(compact_section(sections["fixes"]))
-              notes.append("")
-              notes.append("━━━━━━━━━━━━━━━━━━━━")
-              notes.append("")
-
-          notes.append("**Downloads**")
-          notes.append("")
-
           for asset in assets:
-              name = asset.get("name", "")
-              url = asset.get("browser_download_url", "")
-              label = asset_label(name)
-              if label and url:
-                  notes.append(f"{label}")
-                  notes.append(f"{url}")
-                  notes.append("")
+              name = asset["name"]
+              link = asset["browser_download_url"]
 
-          if release.get("zipball_url"):
-              notes.append("📦 Source code (zip)")
-              notes.append(release["zipball_url"])
-              notes.append("")
+              download_name = label(name)
 
-          if release.get("tarball_url"):
-              notes.append("📦 Source code (tar.gz)")
-              notes.append(release["tarball_url"])
-              notes.append("")
+              if download_name:
+                  message.append(f"{download_name}")
+                  message.append(link)
+                  message.append("")
 
-          if html_url:
-              notes.append("━━━━━━━━━━━━━━━━━━━━")
-              notes.append("")
-              notes.append(f"**Full release:** {html_url}")
+          message.append("━━━━━━━━━━━━━━━━━━━━")
+          message.append("")
+          message.append(f"🔗 Full Release:")
+          message.append(url)
 
-          pathlib.Path("discord_message.txt").write_text("\n".join(notes).strip(), encoding="utf-8")
+          pathlib.Path("discord_message.txt").write_text(
+              "\n".join(message),
+              encoding="utf-8"
+          )
+
           PY
 
-      - name: Send message to Discord
+      - name: Send To Discord
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.RELEASE_WEBHOOK }}
+          WEBHOOK: ${{ secrets.RELEASE_WEBHOOK }}
         run: |
-          python - <<'PY'
+          python3 <<'PY'
           import json
           import pathlib
           import urllib.request
 
-          content = pathlib.Path("discord_message.txt").read_text(encoding="utf-8")
+          content = pathlib.Path(
+              "discord_message.txt"
+          ).read_text(encoding="utf-8")
 
           payload = {
               "username": "Github Releases",
               "content": content
           }
 
-          req = urllib.request.Request(
-              url="${DISCORD_WEBHOOK_URL}",
-              data=json.dumps(payload).encode("utf-8"),
-              headers={"Content-Type": "application/json"},
-              method="POST",
+          request = urllib.request.Request(
+              "${WEBHOOK}",
+              data=json.dumps(payload).encode(),
+              headers={
+                  "Content-Type": "application/json"
+              }
           )
 
-          with urllib.request.urlopen(req) as response:
-              print(response.status)
+          urllib.request.urlopen(request)
+
           PY
