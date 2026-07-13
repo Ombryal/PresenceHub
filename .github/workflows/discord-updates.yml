@@ -1,0 +1,44 @@
+name: Discord GitHub Updates
+
+on:
+  push:
+  issues:
+    types:
+      - opened
+      - closed
+      - reopened
+  issue_comment:
+  pull_request:
+    types:
+      - opened
+      - closed
+      - reopened
+      - synchronize
+  pull_request_review:
+    types:
+      - submitted
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          EVENT="${{ github.event_name }}"
+          REPO="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          URL="${{ github.event.repository.html_url }}"
+
+          curl -H "Content-Type: application/json" \
+          -d "{
+            \"username\": \"GitHub Updates\",
+            \"embeds\": [{
+              \"title\": \"${EVENT} event\",
+              \"description\": \"**Repository:** ${REPO}\n**User:** ${ACTOR}\n\n[View Repository](${URL})\",
+              \"color\": 5814783
+            }]
+          }" \
+          $DISCORD_WEBHOOK
