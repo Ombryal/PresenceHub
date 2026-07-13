@@ -1,0 +1,165 @@
+name: Release to Discord
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build release message
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 <<'PY'
+          import json, os, re, urllib.request
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/releases/latest",
+              headers={
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "User-Agent": "Python"
+              }
+          )
+          with urllib.request.urlopen(req) as resp:
+              release = json.loads(resp.read().decode())
+
+          title = release.get("name") or release.get("tag_name")
+          tag = release.get("tag_name")
+          body = release.get("body") or ""
+          url = release.get("html_url")
+          assets = release.get("assets", [])
+
+          def clean_content(text):
+              t = text.strip()
+              if t.startswith("**"):
+                  t = t[2:]
+              if t.endswith("**"):
+                  t = t[:-2]
+              return t.strip()
+
+          def get_section(heading_pat, next_pats=[]):
+              m = re.search(heading_pat, body, re.IGNORECASE)
+              if not m:
+                  return ""
+              start = m.end()
+              remaining = body[start:]
+              end = len(remaining)
+              for pat in next_pats:
+                  nxt = re.search(pat, remaining, re.IGNORECASE)
+                  if nxt and nxt.start() < end:
+                      end = nxt.start()
+              return clean_content(remaining[:end])
+
+          whats_new = get_section(
+              r'(?:✨\s*)?what\'?s?\s*new',
+              [r'(?:🛠\s*)?improvements', r'(?:🐛\s*)?fixes']
+          )
+          improvements = get_section(
+              r'(?:🛠\s*)?improvements',
+              [r'(?:🐛\s*)?fixes']
+          )
+          fixes = get_section(r'(?:🐛\s*)?fixes')
+
+          lines = []
+          lines.append(f"🚀 **{title}**")
+          lines.append(f"📦 Version: `{tag}`")
+          lines.append(f"📁 Repository: `{repo}`")
+          lines.append("")
+
+          if whats_new:
+              lines.append("✨ **What's New**")
+              lines.append(whats_new)
+              lines.append("")
+
+          if improvements:
+              lines.append("🛠 **Improvements**")
+              lines.append(improvements)
+              lines.append("")
+
+          if fixes:
+              lines.append("🐛 **Fixes**")
+              lines.append(fixes)
+              lines.append("")
+
+          lines.append("📥 **Downloads**")
+
+          def label(name):
+              n = name.lower()
+              if n.endswith(".apk"):
+                  if "arm64" in n:
+                      return "📱 Download APK (Arm64)"
+                  if "armeabi" in n or "armeabi-v7a" in n:
+                      return "📱 Download APK (Armeabi-v7a)"
+                  if "universal" in n:
+                      return "📱 Download APK (Universal)"
+                  return "📱 Download APK"
+              if ".exe" in n or "installer" in n:
+                  return "🪟 Download Windows Installer"
+              if "linux" in n and (".zip" in n or ".tar" in n):
+                  return "🐧 Download Linux"
+              if ".ipa" in n:
+                  return "📱 Download iOS IPA"
+              if ".dmg" in n or "macos" in n or ".pkg" in n:
+                  return "🍎 Download macOS"
+              return f"📎 {name}"
+
+          for asset in assets:
+              dl_label = label(asset["name"])
+              dl_url = asset["browser_download_url"]
+              lines.append(f"[{dl_label}]({dl_url})")
+
+          lines.append("")
+          lines.append(f"[🔗 Full Release]({url})")
+
+          full_msg = "\n".join(lines)
+          with open("discord_message.txt", "w", encoding="utf-8") as f:
+              f.write(full_msg)
+          print("Message saved.")
+          PY
+
+      - name: Send to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          MESSAGE=$(cat discord_message.txt)
+          LENGTH=${#MESSAGE}
+          echo "Message length: $LENGTH"
+
+          MAX=2000
+          if [ $LENGTH -le $MAX ]; then
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg content "$MESSAGE" '{username: "GitHub Releases", content: $content}')" \
+              "$WEBHOOK"
+            echo "Sent single chunk."
+          else
+            echo "Message too long, splitting..."
+            CHUNK=""
+            while IFS= read -r line; do
+              if [ -z "$CHUNK" ]; then
+                CHUNK="$line"
+              else
+                NEW_CHUNK="$CHUNK"$'\n'"$line"
+                if [ ${#NEW_CHUNK} -gt $MAX ]; then
+                  curl -s -X POST \
+                    -H "Content-Type: application/json" \
+                    -d "$(jq -n --arg content "$CHUNK" '{username: "GitHub Releases", content: $content}')" \
+                    "$WEBHOOK"
+                  CHUNK="$line"
+                else
+                  CHUNK="$NEW_CHUNK"
+                fi
+              fi
+            done < discord_message.txt
+            if [ -n "$CHUNK" ]; then
+              curl -s -X POST \
+                -H "Content-Type: application/json" \
+                -d "$(jq -n --arg content "$CHUNK" '{username: "GitHub Releases", content: $content}')" \
+                "$WEBHOOK"
+            fi
+            echo "All chunks sent."
+          fi
