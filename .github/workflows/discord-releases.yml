@@ -16,7 +16,6 @@ jobs:
           python3 <<'PY'
           import json, os, re, urllib.request
 
-          # --- 1. Fetch latest release ---
           repo = os.environ["GITHUB_REPOSITORY"]
           req = urllib.request.Request(
               f"https://api.github.com/repos/{repo}/releases/latest",
@@ -34,7 +33,15 @@ jobs:
           url = release.get("html_url")
           assets = release.get("assets", [])
 
-          # --- 2. Parse sections ---
+          def clean_content(text):
+              """Remove leading/trailing ** and whitespace."""
+              t = text.strip()
+              if t.startswith("**"):
+                  t = t[2:]
+              if t.endswith("**"):
+                  t = t[:-2]
+              return t.strip()
+
           def get_section(heading_pat, next_pats=[]):
               m = re.search(heading_pat, body, re.IGNORECASE)
               if not m:
@@ -46,7 +53,7 @@ jobs:
                   nxt = re.search(pat, remaining, re.IGNORECASE)
                   if nxt and nxt.start() < end:
                       end = nxt.start()
-              return remaining[:end].strip()
+              return clean_content(remaining[:end])
 
           whats_new = get_section(
               r'(?:✨\s*)?what\'?s?\s*new',
@@ -58,7 +65,6 @@ jobs:
           )
           fixes = get_section(r'(?:🐛\s*)?fixes')
 
-          # --- 3. Build message ---
           lines = []
           lines.append(f"🚀 **{title}**")
           lines.append(f"📦 Version: `{tag}`")
@@ -114,18 +120,17 @@ jobs:
               return f"📎 {name}"
 
           for asset in assets:
-              lines.append(label(asset["name"]))
-              lines.append(asset["browser_download_url"])
-              lines.append("")
+              dl_label = label(asset["name"])
+              dl_url = asset["browser_download_url"]
+              lines.append(f"{dl_label}: {dl_url}")
 
+          lines.append("")
           lines.append("━━━━━━━━━━━━━━━━━━━━")
           lines.append("")
           lines.append("🔗 Full Release:")
           lines.append(url)
 
           full_msg = "\n".join(lines)
-
-          # --- 4. Save to file ---
           with open("discord_message.txt", "w", encoding="utf-8") as f:
               f.write(full_msg)
           print("Message saved.")
@@ -139,7 +144,6 @@ jobs:
           LENGTH=${#MESSAGE}
           echo "Message length: $LENGTH"
 
-          # Split if needed (Discord limit 2000)
           MAX=2000
           if [ $LENGTH -le $MAX ]; then
             curl -s -X POST \
@@ -148,7 +152,6 @@ jobs:
               "$WEBHOOK"
             echo "Sent single chunk."
           else
-            # Split by lines into chunks ≤2000
             echo "Message too long, splitting..."
             CHUNK=""
             while IFS= read -r line; do
@@ -157,7 +160,6 @@ jobs:
               else
                 NEW_CHUNK="$CHUNK"$'\n'"$line"
                 if [ ${#NEW_CHUNK} -gt $MAX ]; then
-                  # send current chunk
                   curl -s -X POST \
                     -H "Content-Type: application/json" \
                     -d "$(jq -n --arg content "$CHUNK" '{username: "GitHub Releases", content: $content}')" \
@@ -168,7 +170,6 @@ jobs:
                 fi
               fi
             done < discord_message.txt
-            # send last chunk
             if [ -n "$CHUNK" ]; then
               curl -s -X POST \
                 -H "Content-Type: application/json" \
