@@ -4,6 +4,7 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
 
 jobs:
   discord-release:
@@ -11,57 +12,39 @@ jobs:
 
     steps:
       - name: Format Release Message
-        env:
-          EVENT_PATH: ${{ github.event_path }}
         run: |
           python3 <<'PY'
-          import json
-          import os
-          import pathlib
-          import re
+          import json, os, pathlib, re
 
-          try:
-              with open(os.environ["EVENT_PATH"], "r", encoding="utf-8") as f:
-                  data = json.load(f)
-          except Exception as e:
-              print(f"Failed to read event file: {e}")
-              raise
+          event_path = os.environ.get("GITHUB_EVENT_PATH")
+          if not event_path:
+              raise RuntimeError("GITHUB_EVENT_PATH not set")
+
+          with open(event_path, "r", encoding="utf-8") as f:
+              data = json.load(f)
 
           release = data["release"]
           repo = data["repository"]["full_name"]
-
           title = release.get("name") or release.get("tag_name")
           tag = release.get("tag_name")
           body = release.get("body") or ""
           url = release.get("html_url")
           assets = release.get("assets", [])
 
-          # ------------------------------------------------------------------
-          # Robust section parser – handles all heading variations
-          # ------------------------------------------------------------------
           def get_section(heading_pattern, next_section_patterns=None):
-              """Extract text between a heading and the next heading(s)."""
-              # Build regex for the main heading: e.g. "✨ What's New", "Whats New", etc.
-              # The pattern is case‑insensitive and allows optional emoji/whitespace.
               match = re.search(heading_pattern, body, re.IGNORECASE)
               if not match:
                   return ""
-
               start = match.end()
               remaining = body[start:]
-
-              # Find earliest occurrence of any next section heading
               end = len(remaining)
               if next_section_patterns:
                   for pat in next_section_patterns:
                       m = re.search(pat, remaining, re.IGNORECASE)
                       if m and m.start() < end:
                           end = m.start()
+              return remaining[:end].strip()
 
-              section = remaining[:end].strip()
-              return section
-
-          # Patterns that match the common variations:
           whats_new_pat = r'(?:✨\s*)?what\'?s?\s*new'
           improvements_pat = r'(?:🛠\s*)?improvements'
           fixes_pat = r'(?:🐛\s*)?fixes'
@@ -70,42 +53,29 @@ jobs:
           improvements = get_section(improvements_pat, [fixes_pat])
           fixes = get_section(fixes_pat, [])
 
-          # Build message
-          message_lines = []
-          message_lines.append(f"🚀 **{title}**")
-          message_lines.append("")
-          message_lines.append(f"📦 Version: `{tag}`")
-          message_lines.append(f"📁 Repository: `{repo}`")
-          message_lines.append("")
-          message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+          message_lines = [
+              f"🚀 **{title}**",
+              "",
+              f"📦 Version: `{tag}`",
+              f"📁 Repository: `{repo}`",
+              "",
+              "━━━━━━━━━━━━━━━━━━━━"
+          ]
 
           if whats_new:
-              message_lines.append("")
-              message_lines.append("✨ **What's New**")
-              message_lines.append("")
-              message_lines.append(whats_new)
-
+              message_lines += ["", "✨ **What's New**", "", whats_new]
           if improvements:
-              message_lines.append("")
-              message_lines.append("━━━━━━━━━━━━━━━━━━━━")
-              message_lines.append("")
-              message_lines.append("🛠 **Improvements**")
-              message_lines.append("")
-              message_lines.append(improvements)
-
+              message_lines += ["", "━━━━━━━━━━━━━━━━━━━━", "", "🛠 **Improvements**", "", improvements]
           if fixes:
-              message_lines.append("")
-              message_lines.append("━━━━━━━━━━━━━━━━━━━━")
-              message_lines.append("")
-              message_lines.append("🐛 **Fixes**")
-              message_lines.append("")
-              message_lines.append(fixes)
+              message_lines += ["", "━━━━━━━━━━━━━━━━━━━━", "", "🐛 **Fixes**", "", fixes]
 
-          message_lines.append("")
-          message_lines.append("━━━━━━━━━━━━━━━━━━━━")
-          message_lines.append("")
-          message_lines.append("📥 **Downloads**")
-          message_lines.append("")
+          message_lines += [
+              "",
+              "━━━━━━━━━━━━━━━━━━━━",
+              "",
+              "📥 **Downloads**",
+              ""
+          ]
 
           def label(filename):
               name = filename.lower()
@@ -125,26 +95,21 @@ jobs:
                   return "📱 Download iOS IPA"
               if ".dmg" in name or "macos" in name or ".pkg" in name:
                   return "🍎 Download macOS"
-              # Fallback – keep generic so nothing is lost
               return f"📎 {filename}"
 
           for asset in assets:
-              asset_name = asset["name"]
-              link = asset["browser_download_url"]
-              dl_label = label(asset_name)
-              message_lines.append(dl_label)
-              message_lines.append(link)
+              message_lines.append(label(asset["name"]))
+              message_lines.append(asset["browser_download_url"])
               message_lines.append("")
 
-          message_lines.append("━━━━━━━━━━━━━━━━━━━━")
-          message_lines.append("")
-          message_lines.append(f"🔗 Full Release:")
-          message_lines.append(url)
+          message_lines += [
+              "━━━━━━━━━━━━━━━━━━━━",
+              "",
+              "🔗 Full Release:",
+              url
+          ]
 
-          full_message = "\n".join(message_lines)
-
-          # Save to file for the next step
-          pathlib.Path("discord_message.txt").write_text(full_message, encoding="utf-8")
+          pathlib.Path("discord_message.txt").write_text("\n".join(message_lines), encoding="utf-8")
           print("Message file written successfully.")
           PY
 
@@ -153,10 +118,7 @@ jobs:
           WEBHOOK: ${{ secrets.RELEASE_WEBHOOK }}
         run: |
           python3 <<'PY'
-          import json
-          import os
-          import pathlib
-          import urllib.request
+          import json, os, pathlib, urllib.request
 
           webhook_url = os.environ.get("WEBHOOK")
           if not webhook_url:
@@ -169,30 +131,18 @@ jobs:
           content = msg_file.read_text(encoding="utf-8")
           print(f"Message length: {len(content)} characters")
 
-          # Discord limit is 2000 characters. Split if needed.
           MAX_LEN = 2000
 
           def send_chunk(chunk):
-              payload = {
-                  "username": "Github Releases",
-                  "content": chunk
-              }
-              data = json.dumps(payload).encode("utf-8")
+              payload = {"username": "Github Releases", "content": chunk}
               req = urllib.request.Request(
                   webhook_url,
-                  data=data,
-                  headers={
-                      "Content-Type": "application/json"
-                  }
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"}
               )
-              try:
-                  with urllib.request.urlopen(req) as resp:
-                      print(f"Sent chunk ({len(chunk)} chars), status: {resp.status}")
-              except Exception as e:
-                  print(f"Failed to send chunk: {e}")
-                  raise
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Sent chunk ({len(chunk)} chars), status: {resp.status}")
 
-          # Simple split: keep lines intact, group up to MAX_LEN
           lines = content.splitlines(keepends=True)
           current_chunk = ""
           for line in lines:
