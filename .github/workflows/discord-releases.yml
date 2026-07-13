@@ -34,7 +34,7 @@ jobs:
           assets = release.get("assets", [])
 
           def clean_content(text):
-              """Remove leading/trailing ** and whitespace."""
+              """Strip ** wrapping, leading/trailing whitespace and newlines."""
               t = text.strip()
               if t.startswith("**"):
                   t = t[2:]
@@ -69,35 +69,24 @@ jobs:
           lines.append(f"🚀 **{title}**")
           lines.append(f"📦 Version: `{tag}`")
           lines.append(f"📁 Repository: `{repo}`")
-          lines.append("━━━━━━━━━━━━━━━━━━━━")
+          lines.append("")            # single blank line
 
           if whats_new:
-              lines.append("")
               lines.append("✨ **What's New**")
-              lines.append("")
               lines.append(whats_new)
+              lines.append("")
 
           if improvements:
-              lines.append("")
-              lines.append("━━━━━━━━━━━━━━━━━━━━")
-              lines.append("")
               lines.append("🛠 **Improvements**")
-              lines.append("")
               lines.append(improvements)
+              lines.append("")
 
           if fixes:
-              lines.append("")
-              lines.append("━━━━━━━━━━━━━━━━━━━━")
-              lines.append("")
               lines.append("🐛 **Fixes**")
-              lines.append("")
               lines.append(fixes)
+              lines.append("")
 
-          lines.append("")
-          lines.append("━━━━━━━━━━━━━━━━━━━━")
-          lines.append("")
           lines.append("📥 **Downloads**")
-          lines.append("")
 
           def label(name):
               n = name.lower()
@@ -122,13 +111,10 @@ jobs:
           for asset in assets:
               dl_label = label(asset["name"])
               dl_url = asset["browser_download_url"]
-              lines.append(f"{dl_label}: {dl_url}")
+              lines.append(f"[{dl_label}]({dl_url})")
 
-          lines.append("")
-          lines.append("━━━━━━━━━━━━━━━━━━━━")
-          lines.append("")
-          lines.append("🔗 Full Release:")
-          lines.append(url)
+          lines.append("")            # blank line before final link
+          lines.append(f"[🔗 Full Release]({url})")
 
           full_msg = "\n".join(lines)
           with open("discord_message.txt", "w", encoding="utf-8") as f:
