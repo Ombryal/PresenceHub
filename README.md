@@ -1,6 +1,6 @@
 # PresenceHub
 
-PresenceHub is a modular Discord Rich Presence client for Android.
+PresenceHub is a modular Discord Rich Presence client for Android..
 
 Instead of hardcoding support for YouTube, Spotify, Twitch, and every other platform into one massive app, PresenceHub works through plugins.
 
