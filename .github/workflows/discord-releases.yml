@@ -25,7 +25,6 @@ jobs:
           python3 <<'PY'
           import json, os, pathlib, re, subprocess
 
-          event_name = os.environ.get("GITHUB_EVENT_NAME", "release")
           is_dispatch = os.environ.get("IS_WORKFLOW_DISPATCH") == "true"
 
           if is_dispatch:
@@ -47,8 +46,7 @@ jobs:
                   raise RuntimeError(f"Failed to fetch release: {result.stderr}")
 
               release = json.loads(result.stdout)
-              data = {"repository": {"full_name": os.environ["GITHUB_REPOSITORY"]}}
-              repo = data["repository"]["full_name"]
+              repo = os.environ["GITHUB_REPOSITORY"]
           else:
               event_path = os.environ.get("GITHUB_EVENT_PATH")
               if not event_path:
@@ -146,6 +144,22 @@ jobs:
           print("Message file written successfully.")
           PY
 
+      - name: Debug Webhook Secret
+        env:
+          WEBHOOK: ${{ secrets.RELEASE_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "ERROR: WEBHOOK secret is empty"
+            exit 1
+          fi
+          echo "Webhook URL length: ${#WEBHOOK}"
+          echo "First 60 chars: ${WEBHOOK:0:60}..."
+          if [[ "$WEBHOOK" != https://discord.com/api/webhooks/* ]]; then
+            echo "ERROR: URL does not start with https://discord.com/api/webhooks/"
+            exit 1
+          fi
+          echo "Webhook URL format looks OK"
+
       - name: Send To Discord
         env:
           WEBHOOK: ${{ secrets.RELEASE_WEBHOOK }}
@@ -155,19 +169,13 @@ jobs:
 
           webhook_url = os.environ.get("WEBHOOK", "")
           if not webhook_url:
-              raise ValueError("WEBHOOK secret is empty or not set. Please add RELEASE_WEBHOOK to your repository secrets.")
-
-          # Quick validation
+              raise ValueError("WEBHOOK secret is empty or not set.")
           if not webhook_url.startswith("https://discord.com/api/webhooks/"):
-              raise ValueError(
-                  "Webhook URL does not look like a Discord webhook. "
-                  "It should start with https://discord.com/api/webhooks/ "
-                  f"Current value starts with: {webhook_url[:50]}..."
-              )
+              raise ValueError(f"Invalid webhook URL prefix: {webhook_url[:60]}...")
 
           msg_file = pathlib.Path("discord_message.txt")
           if not msg_file.exists():
-              raise FileNotFoundError("discord_message.txt not found. Something went wrong in the previous step.")
+              raise FileNotFoundError("discord_message.txt not found.")
 
           content = msg_file.read_text(encoding="utf-8")
           print(f"Message length: {len(content)} characters")
@@ -185,12 +193,11 @@ jobs:
               try:
                   with urllib.request.urlopen(req) as resp:
                       if resp.status == 204:
-                          print(f"Sent chunk ({len(chunk)} chars) successfully")
+                          print(f"Sent chunk ({len(chunk)} chars)")
                       else:
-                          print(f"Unexpected status code: {resp.status}")
+                          print(f"Unexpected status: {resp.status}")
               except urllib.error.HTTPError as e:
-                  print(f"HTTP Error {e.code}: {e.reason}")
-                  print("Check that your webhook URL is correct and not expired. You may need to create a new one in Discord.")
+                  print(f"HTTP {e.code} {e.reason}: Webhook URL may be invalid or revoked.")
                   raise
 
           lines = content.splitlines(keepends=True)
