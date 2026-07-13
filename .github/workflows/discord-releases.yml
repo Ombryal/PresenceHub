@@ -9,29 +9,147 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send latest release to Discord
+      - name: Post release to Discord
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          # Fetch the latest release info from the GitHub API
-          RELEASE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          python3 <<'PY'
+          import json, os, re, urllib.request
 
-          TITLE=$(echo "$RELEASE" | jq -r '.name // .tag_name')
-          URL=$(echo "$RELEASE" | jq -r '.html_url')
-          BODY=$(echo "$RELEASE" | jq -r '.body // ""')
+          # --- 1. Fetch the latest release ---
+          repo = os.environ["GITHUB_REPOSITORY"]
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/releases/latest",
+              headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}"}
+          )
+          with urllib.request.urlopen(req) as resp:
+              release = json.loads(resp.read().decode())
 
-          # Build a clean Discord message (plain text, no embeds for simplicity)
-          CONTENT="🚀 **${TITLE}**\n🔗 ${URL}"
+          title = release.get("name") or release.get("tag_name")
+          tag = release.get("tag_name")
+          body = release.get("body") or ""
+          url = release.get("html_url")
+          assets = release.get("assets", [])
 
-          # Add release body only if it exists and is short
-          if [ -n "$BODY" ] && [ ${#BODY} -lt 500 ]; then
-            CONTENT="${CONTENT}\n\n${BODY}"
-          fi
+          # --- 2. Parse sections (handles all heading variations) ---
+          def get_section(heading_pat, next_pats=[]):
+              m = re.search(heading_pat, body, re.IGNORECASE)
+              if not m:
+                  return ""
+              start = m.end()
+              remaining = body[start:]
+              end = len(remaining)
+              for pat in next_pats:
+                  nxt = re.search(pat, remaining, re.IGNORECASE)
+                  if nxt and nxt.start() < end:
+                      end = nxt.start()
+              return remaining[:end].strip()
 
-          # Send to Discord
-          curl -s -X POST \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n --arg content "$CONTENT" '{username: "GitHub Releases", content: $content}')" \
-            "$WEBHOOK"
+          whats_new = get_section(
+              r'(?:✨\s*)?what\'?s?\s*new',
+              [r'(?:🛠\s*)?improvements', r'(?:🐛\s*)?fixes']
+          )
+          improvements = get_section(
+              r'(?:🛠\s*)?improvements',
+              [r'(?:🐛\s*)?fixes']
+          )
+          fixes = get_section(r'(?:🐛\s*)?fixes')
+
+          # --- 3. Build the message ---
+          lines = []
+          lines.append(f"🚀 **{title}**")
+          lines.append(f"📦 Version: `{tag}`")
+          lines.append(f"📁 Repository: `{repo}`")
+          lines.append("━━━━━━━━━━━━━━━━━━━━")
+
+          if whats_new:
+              lines.append("")
+              lines.append("✨ **What's New**")
+              lines.append("")
+              lines.append(whats_new)
+
+          if improvements:
+              lines.append("")
+              lines.append("━━━━━━━━━━━━━━━━━━━━")
+              lines.append("")
+              lines.append("🛠 **Improvements**")
+              lines.append("")
+              lines.append(improvements)
+
+          if fixes:
+              lines.append("")
+              lines.append("━━━━━━━━━━━━━━━━━━━━")
+              lines.append("")
+              lines.append("🐛 **Fixes**")
+              lines.append("")
+              lines.append(fixes)
+
+          lines.append("")
+          lines.append("━━━━━━━━━━━━━━━━━━━━")
+          lines.append("")
+          lines.append("📥 **Downloads**")
+          lines.append("")
+
+          def label(name):
+              n = name.lower()
+              if n.endswith(".apk"):
+                  if "arm64" in n:
+                      return "📱 Download APK (Arm64)"
+                  if "armeabi" in n or "armeabi-v7a" in n:
+                      return "📱 Download APK (Armeabi-v7a)"
+                  if "universal" in n:
+                      return "📱 Download APK (Universal)"
+                  return "📱 Download APK"
+              if ".exe" in n or "installer" in n:
+                  return "🪟 Download Windows Installer"
+              if "linux" in n and (".zip" in n or ".tar" in n):
+                  return "🐧 Download Linux"
+              if ".ipa" in n:
+                  return "📱 Download iOS IPA"
+              if ".dmg" in n or "macos" in n or ".pkg" in n:
+                  return "🍎 Download macOS"
+              return f"📎 {name}"
+
+          for asset in assets:
+              lines.append(label(asset["name"]))
+              lines.append(asset["browser_download_url"])
+              lines.append("")
+
+          lines.append("━━━━━━━━━━━━━━━━━━━━")
+          lines.append("")
+          lines.append("🔗 Full Release:")
+          lines.append(url)
+
+          full_msg = "\n".join(lines)
+
+          # --- 4. Send to Discord (with splitting) ---
+          webhook_url = os.environ["WEBHOOK"].strip()
+          print(f"Webhook URL length after strip: {len(webhook_url)}")
+
+          def send_chunk(chunk):
+              payload = json.dumps({"username": "GitHub Releases", "content": chunk}).encode()
+              req = urllib.request.Request(
+                  webhook_url,
+                  data=payload,
+                  headers={"Content-Type": "application/json"}
+              )
+              with urllib.request.urlopen(req) as r:
+                  if r.status == 204:
+                      print(f"Sent chunk ({len(chunk)} chars)")
+                  else:
+                      print(f"Warning: status {r.status}")
+
+          MAX_LEN = 2000
+          current = ""
+          for line in full_msg.splitlines(keepends=True):
+              if len(current) + len(line) > MAX_LEN:
+                  send_chunk(current.rstrip())
+                  current = line
+              else:
+                  current += line
+          if current.strip():
+              send_chunk(current.rstrip())
+
+          print("All done.")
+          PY
