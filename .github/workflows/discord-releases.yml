@@ -18,141 +18,134 @@ jobs:
           import json
           import os
           import pathlib
-          from datetime import datetime
+          import re
 
-          with open(os.environ["EVENT_PATH"], "r", encoding="utf-8") as f:
-              data = json.load(f)
+          try:
+              with open(os.environ["EVENT_PATH"], "r", encoding="utf-8") as f:
+                  data = json.load(f)
+          except Exception as e:
+              print(f"Failed to read event file: {e}")
+              raise
 
           release = data["release"]
+          repo = data["repository"]["full_name"]
 
           title = release.get("name") or release.get("tag_name")
           tag = release.get("tag_name")
           body = release.get("body") or ""
-          repo = data["repository"]["full_name"]
           url = release.get("html_url")
-
           assets = release.get("assets", [])
 
-          def clean_section(text):
-              return text.strip()
-
-          def get_section(name, next_sections):
-              start = body.lower().find(name.lower())
-
-              if start == -1:
+          # ------------------------------------------------------------------
+          # Robust section parser – handles all heading variations
+          # ------------------------------------------------------------------
+          def get_section(heading_pattern, next_section_patterns=None):
+              """Extract text between a heading and the next heading(s)."""
+              # Build regex for the main heading: e.g. "✨ What's New", "Whats New", etc.
+              # The pattern is case‑insensitive and allows optional emoji/whitespace.
+              match = re.search(heading_pattern, body, re.IGNORECASE)
+              if not match:
                   return ""
 
-              content = body[start + len(name):]
+              start = match.end()
+              remaining = body[start:]
 
-              end = len(content)
+              # Find earliest occurrence of any next section heading
+              end = len(remaining)
+              if next_section_patterns:
+                  for pat in next_section_patterns:
+                      m = re.search(pat, remaining, re.IGNORECASE)
+                      if m and m.start() < end:
+                          end = m.start()
 
-              for section in next_sections:
-                  pos = content.lower().find(section.lower())
-                  if pos != -1:
-                      end = min(end, pos)
+              section = remaining[:end].strip()
+              return section
 
-              return clean_section(content[:end])
+          # Patterns that match the common variations:
+          whats_new_pat = r'(?:✨\s*)?what\'?s?\s*new'
+          improvements_pat = r'(?:🛠\s*)?improvements'
+          fixes_pat = r'(?:🐛\s*)?fixes'
 
-          whats_new = get_section(
-              "✨ What's New",
-              ["🛠 Improvements", "🐛 Fixes"]
-          )
+          whats_new = get_section(whats_new_pat, [improvements_pat, fixes_pat])
+          improvements = get_section(improvements_pat, [fixes_pat])
+          fixes = get_section(fixes_pat, [])
 
-          improvements = get_section(
-              "🛠 Improvements",
-              ["🐛 Fixes"]
-          )
-
-          fixes = get_section(
-              "🐛 Fixes",
-              []
-          )
-
-          message = []
-
-          message.append(f"🚀 **{title}**")
-          message.append("")
-          message.append(f"📦 Version: `{tag}`")
-          message.append(f"📁 Repository: `{repo}`")
-          message.append("")
-
-          message.append("━━━━━━━━━━━━━━━━━━━━")
+          # Build message
+          message_lines = []
+          message_lines.append(f"🚀 **{title}**")
+          message_lines.append("")
+          message_lines.append(f"📦 Version: `{tag}`")
+          message_lines.append(f"📁 Repository: `{repo}`")
+          message_lines.append("")
+          message_lines.append("━━━━━━━━━━━━━━━━━━━━")
 
           if whats_new:
-              message.append("")
-              message.append("✨ **What's New**")
-              message.append("")
-              message.append(whats_new)
+              message_lines.append("")
+              message_lines.append("✨ **What's New**")
+              message_lines.append("")
+              message_lines.append(whats_new)
 
           if improvements:
-              message.append("")
-              message.append("━━━━━━━━━━━━━━━━━━━━")
-              message.append("")
-              message.append("🛠 **Improvements**")
-              message.append("")
-              message.append(improvements)
+              message_lines.append("")
+              message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+              message_lines.append("")
+              message_lines.append("🛠 **Improvements**")
+              message_lines.append("")
+              message_lines.append(improvements)
 
           if fixes:
-              message.append("")
-              message.append("━━━━━━━━━━━━━━━━━━━━")
-              message.append("")
-              message.append("🐛 **Fixes**")
-              message.append("")
-              message.append(fixes)
+              message_lines.append("")
+              message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+              message_lines.append("")
+              message_lines.append("🐛 **Fixes**")
+              message_lines.append("")
+              message_lines.append(fixes)
 
-          message.append("")
-          message.append("━━━━━━━━━━━━━━━━━━━━")
-          message.append("")
-          message.append("📥 **Downloads**")
-          message.append("")
+          message_lines.append("")
+          message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+          message_lines.append("")
+          message_lines.append("📥 **Downloads**")
+          message_lines.append("")
 
-          def label(asset):
-              name = asset.lower()
-
+          def label(filename):
+              name = filename.lower()
               if name.endswith(".apk"):
                   if "arm64" in name:
                       return "📱 Download APK (Arm64)"
-                  if "armeabi" in name:
+                  if "armeabi" in name or "armeabi-v7a" in name:
                       return "📱 Download APK (Armeabi-v7a)"
                   if "universal" in name:
                       return "📱 Download APK (Universal)"
                   return "📱 Download APK"
-
               if ".exe" in name or "installer" in name:
                   return "🪟 Download Windows Installer"
-
-              if "linux" in name and ".zip" in name:
-                  return "🐧 Download Linux ZIP"
-
+              if "linux" in name and (".zip" in name or ".tar" in name):
+                  return "🐧 Download Linux"
               if ".ipa" in name:
                   return "📱 Download iOS IPA"
-
-              if ".dmg" in name or "macos" in name:
+              if ".dmg" in name or "macos" in name or ".pkg" in name:
                   return "🍎 Download macOS"
-
-              return None
+              # Fallback – keep generic so nothing is lost
+              return f"📎 {filename}"
 
           for asset in assets:
-              name = asset["name"]
+              asset_name = asset["name"]
               link = asset["browser_download_url"]
+              dl_label = label(asset_name)
+              message_lines.append(dl_label)
+              message_lines.append(link)
+              message_lines.append("")
 
-              download_name = label(name)
+          message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+          message_lines.append("")
+          message_lines.append(f"🔗 Full Release:")
+          message_lines.append(url)
 
-              if download_name:
-                  message.append(f"{download_name}")
-                  message.append(link)
-                  message.append("")
+          full_message = "\n".join(message_lines)
 
-          message.append("━━━━━━━━━━━━━━━━━━━━")
-          message.append("")
-          message.append(f"🔗 Full Release:")
-          message.append(url)
-
-          pathlib.Path("discord_message.txt").write_text(
-              "\n".join(message),
-              encoding="utf-8"
-          )
-
+          # Save to file for the next step
+          pathlib.Path("discord_message.txt").write_text(full_message, encoding="utf-8")
+          print("Message file written successfully.")
           PY
 
       - name: Send To Discord
@@ -161,26 +154,55 @@ jobs:
         run: |
           python3 <<'PY'
           import json
+          import os
           import pathlib
           import urllib.request
 
-          content = pathlib.Path(
-              "discord_message.txt"
-          ).read_text(encoding="utf-8")
+          webhook_url = os.environ.get("WEBHOOK")
+          if not webhook_url:
+              raise ValueError("WEBHOOK secret not set")
 
-          payload = {
-              "username": "Github Releases",
-              "content": content
-          }
+          msg_file = pathlib.Path("discord_message.txt")
+          if not msg_file.exists():
+              raise FileNotFoundError("discord_message.txt not found")
 
-          request = urllib.request.Request(
-              "${WEBHOOK}",
-              data=json.dumps(payload).encode(),
-              headers={
-                  "Content-Type": "application/json"
+          content = msg_file.read_text(encoding="utf-8")
+          print(f"Message length: {len(content)} characters")
+
+          # Discord limit is 2000 characters. Split if needed.
+          MAX_LEN = 2000
+
+          def send_chunk(chunk):
+              payload = {
+                  "username": "Github Releases",
+                  "content": chunk
               }
-          )
+              data = json.dumps(payload).encode("utf-8")
+              req = urllib.request.Request(
+                  webhook_url,
+                  data=data,
+                  headers={
+                      "Content-Type": "application/json"
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      print(f"Sent chunk ({len(chunk)} chars), status: {resp.status}")
+              except Exception as e:
+                  print(f"Failed to send chunk: {e}")
+                  raise
 
-          urllib.request.urlopen(request)
+          # Simple split: keep lines intact, group up to MAX_LEN
+          lines = content.splitlines(keepends=True)
+          current_chunk = ""
+          for line in lines:
+              if len(current_chunk) + len(line) > MAX_LEN:
+                  send_chunk(current_chunk.rstrip())
+                  current_chunk = line
+              else:
+                  current_chunk += line
+          if current_chunk.strip():
+              send_chunk(current_chunk.rstrip())
 
+          print("All chunks sent.")
           PY
