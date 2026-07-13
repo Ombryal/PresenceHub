@@ -63,7 +63,7 @@ Future versions will include
 - SHA-256 verification
 - Digital signatures
 - API version checks
-- Plugin sandboxing
+- Plugin sandboxing.
 
 ---
 
